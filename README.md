@@ -1,1 +1,1 @@
-# kerberus-auth
+# kerberos-auth

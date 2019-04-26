@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+import argparse
+import subprocess
+import os
+
+from kerberos_as import db
+from kerberos_as.models import Client
+from sqlalchemy import exists
+
+def run_auth_service(args):
+    subprocess.run('start-kerberos-as')
+
+def create_new_client(args):
+    session = db.Session()
+
+    client_created = False
+    while not client_created:
+        print("--Novo Cliente--")
+        desired_client_id = input("Client ID: ")
+
+        client = session.query(Client).filter_by(client_id=desired_client_id).scalar()
+
+        if client is None:
+            client = Client(desired_client_id)
+            
+            session.add(client)
+            session.commit()
+
+            print("\n--Cliente cadastrado--")
+            print(f"Client ID: {client.client_id}")
+            print(f"Key: {client.key}")
+
+            client_created = True
+        else:
+            print("Cliente já existe")
+
+    session.close()
+
+def init_db(args):
+    db.init_db()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Serviço de autenticacao de um sistema kerberos')
+    subparsers = parser.add_subparsers(title='command', dest='command')
+    subparsers.required = True
+
+    run_auth_service_parser = subparsers.add_parser('run', help='Inicia o Serviço de Autenticacao (AS)')
+    run_auth_service_parser.set_defaults(func=run_auth_service)
+
+    new_client_parser = subparsers.add_parser('new-client', help='Cria um novo cliente')
+    new_client_parser.set_defaults(func=create_new_client)
+
+    init_db_parser = subparsers.add_parser('init-db', help='Cria o banco, se não existir')
+    init_db_parser.set_defaults(func=init_db)
+
+    args = parser.parse_args()
+    args.func(args)
