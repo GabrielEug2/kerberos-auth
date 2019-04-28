@@ -3,18 +3,20 @@
 from kerberos_client.kerberos_client import kerberosClient
 
 import argparse
+import pkg_resources
 import json
 import os
 from datetime import datetime
 
 
-CLIENT_DATA_FILENAME = 'client.data'
+#CLIENT_DATA_PATH = client.data'
+CLIENT_DATA_PATH = pkg_resources.resource_filename('kerberos_client', 'client.data')
 
 
 def create_client_data_file():
     print("--Configurando novo cliente--")
     print("Realize o cadastro no serviço de autenticacao, "
-            "e depois insira os mesmos dados abaixo.")
+          "e depois insira os mesmos dados abaixo.")
 
     client_id = input("ID: ")
     client_key = input("Key: ")
@@ -24,20 +26,19 @@ def create_client_data_file():
         'key': client_key
     }
     
-    with open(CLIENT_DATA_FILENAME, 'w') as f:
+    with open(CLIENT_DATA_PATH, 'w') as f:
         json.dump(client_data, f)
 
 def load_client_data():
     try:
-        with open(CLIENT_DATA_FILENAME, 'r') as f:
+        with open(CLIENT_DATA_PATH, 'r') as f:
             client_data = json.load(f)
     except FileNotFoundError:
         print("[Erro] É necessário configurar o cliente.")
-        print("       Execute o comando \"kerberos-client config\"")
+        print("       Execute o comando \"kerberos-client configure\"")
         exit()
     
     return client_data
-
 
 def acquire_new_ticket(args):
     client_data = load_client_data()
@@ -50,29 +51,36 @@ def use_service(args):
     pass
 
 def configure(args):
-    if not os.path.isfile(CLIENT_DATA_FILENAME):
+    if not os.path.isfile(CLIENT_DATA_PATH):
         create_client_data_file()
         print("Cliente criado com sucesso.")
     else:
+        client_data = load_client_data()
         print("Cliente já configurado")
+        print(f"ID: {client_data['client_id']}")
+        print(f"Key: {client_data['key']}")
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Acessa serviços com autenticacao kerberos')
-    subparsers = parser.add_subparsers(title='commands')
+    parser = argparse.ArgumentParser(
+        description=('Aplicação cliente de um sistema kerberus de autenticação.'
+                     'Utiliza serviços via tickets.')
+    )
+    subparsers = parser.add_subparsers(title='commands', dest='command')
+    subparsers.required = True
 
     # TODO: colocar outras opções pra data de validade, por exemplo
     #       somente nas terças feiras, ou do horário X a Y
-    new_ticket_parser = subparsers.add_parser('new-ticket', help='Obtem um novo ticket para um determinado servico')
+    new_ticket_parser = subparsers.add_parser('new-ticket', help='Obtem um novo ticket')
     new_ticket_parser.add_argument('service_id', help='ID do servico a ser utilizado')
-    new_ticket_parser.add_argument('expiration_date', help="Prazo de validade do ticket.\nDeve estar no formato: \"DD-MM-YY HH:mm\"")
+    new_ticket_parser.add_argument('expiration_date', help="Prazo de validade do ticket, na forma \"DD-MM-YY HH:mm\"")
     new_ticket_parser.set_defaults(func=acquire_new_ticket)
 
-    use_service_parser = subparsers.add_parser('use', help='Utiliza um ticket salvo para acessar um serviço')
+    use_service_parser = subparsers.add_parser('use', help='Tenta utilizar um determinado serviço com os tickets salvos')
     use_service_parser.add_argument('service_id', help='ID do servico a ser utilizado')
     use_service_parser.set_defaults(func=use_service)
 
-    configure_parser = subparsers.add_parser('configure', help='Configura um novo cliente')
+    configure_parser = subparsers.add_parser('configure', help='Realiza a configuração do cliente')
     configure_parser.set_defaults(func=configure)
 
     args = parser.parse_args()

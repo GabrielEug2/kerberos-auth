@@ -16,7 +16,7 @@ def create_new_client(args):
 
     client_created = False
     while not client_created:
-        print("--Novo Cliente--")
+        print("--Registrando novo cliente--")
         desired_client_id = input("Client ID: ")
 
         client = session.query(Client).filter_by(client_id=desired_client_id).scalar()
@@ -42,14 +42,16 @@ def init_db(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Serviço de autenticacao de um sistema kerberos')
-    subparsers = parser.add_subparsers(title='command', dest='command')
+    parser = argparse.ArgumentParser(
+        description='Serviço de autenticacao (AS) de um sistema kerberos'
+    )
+    subparsers = parser.add_subparsers(title='commands', dest='command')
     subparsers.required = True
 
-    run_auth_service_parser = subparsers.add_parser('run', help='Inicia o Serviço de Autenticacao (AS)')
+    run_auth_service_parser = subparsers.add_parser('run', help='Inicia o Serviço de Autenticacao')
     run_auth_service_parser.set_defaults(func=run_auth_service)
 
-    new_client_parser = subparsers.add_parser('new-client', help='Cria um novo cliente')
+    new_client_parser = subparsers.add_parser('new-client', help='Cadastra um novo cliente')
     new_client_parser.set_defaults(func=create_new_client)
 
     init_db_parser = subparsers.add_parser('init-db', help='Cria o banco, se não existir')
