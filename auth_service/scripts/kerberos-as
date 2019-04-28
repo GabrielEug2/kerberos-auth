@@ -6,7 +6,27 @@ import os
 
 from kerberos_as import db
 from kerberos_as.models import Client
-from sqlalchemy import exists
+from kerberos_as.models import Server
+
+def setup(args):
+    print("Inicializando banco de dados...")
+    db.drop_db()
+    db.init_db()
+
+    print("Registrando TGS...")
+    tgs_server = Server('TGS')
+    
+    session = db.Session()
+    
+    session.add(tgs_server)
+    session.commit()
+
+    print("\n--TGS--")
+    print(f"Server ID: {tgs_server.server_id}")
+    print(f"Key: {tgs_server.key}")
+
+    session.close()
+
 
 def run_auth_service(args):
     subprocess.run('start-kerberos-as')
@@ -19,9 +39,9 @@ def create_new_client(args):
         print("--Registrando novo cliente--")
         desired_client_id = input("Client ID: ")
 
-        client = session.query(Client).filter_by(client_id=desired_client_id).scalar()
+        client_exists = session.query(Client).filter_by(client_id=desired_client_id).first() is not None
 
-        if client is None:
+        if not client_exists:
             client = Client(desired_client_id)
             
             session.add(client)
@@ -37,9 +57,6 @@ def create_new_client(args):
 
     session.close()
 
-def init_db(args):
-    db.init_db()
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -48,14 +65,14 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(title='commands', dest='command')
     subparsers.required = True
 
+    setup_parser = subparsers.add_parser('setup', help='Cria o banco de dados e gera uma chave pro TGS.')
+    setup_parser.set_defaults(func=setup)
+
     run_auth_service_parser = subparsers.add_parser('run', help='Inicia o Serviço de Autenticacao')
     run_auth_service_parser.set_defaults(func=run_auth_service)
 
     new_client_parser = subparsers.add_parser('new-client', help='Cadastra um novo cliente')
     new_client_parser.set_defaults(func=create_new_client)
-
-    init_db_parser = subparsers.add_parser('init-db', help='Cria o banco, se não existir')
-    init_db_parser.set_defaults(func=init_db)
 
     args = parser.parse_args()
     args.func(args)
