@@ -1,5 +1,6 @@
 
 from kerberos_client.auth_service_client import AuthServiceClient
+
 from kerberos_client.exceptions import ServiceDownError
 
 class KerberosClient:
@@ -7,14 +8,14 @@ class KerberosClient:
         self.client_id = client_id
         self.key = client_key
 
-    def acquire_new_ticket(self, service_id, expiration_date):
+    def acquire_new_ticket(self, service_id, requested_expiration_time):
         print("Autenticando no AS...")
         try:
             AuthServiceClient.request_access_to_service(
                 self.client_id,
                 self.key,
                 service_id,
-                expiration_date
+                requested_expiration_time
             )
         except ServiceDownError:
             print("  Serviço de autenticação está off")

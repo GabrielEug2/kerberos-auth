@@ -3,73 +3,64 @@ from flask import request
 from flask import jsonify
 
 import json
-from kerberos_as.utils.crypto import AES
+from kerberos_as.utils.AES import AES
 
+from kerberos_as.database import db_session
 from kerberos_as.models import Client
-from kerberos_as.models import Server
 
-from kerberos_as import db
+import os
 
 app = Flask(__name__)
+if 'KERBEROS_AS_CONFIG' in os.environ:
+    app.config.from_envvar('KERBEROS_AS_CONFIG')
 
-session = db.Session()
-
-tgs_server = Server.query.filter_by(server_id='TGS').first()
-if tgs_server is not None:
-    TGS_KEY = tgs_server.key
-else:
-    print("TGS não registrado")
-    print("Configure a aplicação primeiro.")
-    exit()
-
-session.close()
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
 
 
-@app.route('/require_access', methods=['POST'])
+@app.route('/request_access', methods=['POST'])
 def require_access():
     request_data = json.loads(request.get_json())
 
     app.logger.info(f"Received: \n{json.dumps(request_data, indent=4)}")
 
     # Procura o cliente
-    session = db.Session()
-
-    client = Client.query.filter_by(client_id=request_data['client_id']).first()
+    client = Client.query.filter_by(client_id=request_data['clientId']).first()
     client_exists = client is not None
 
     if client_exists:
-        m1_content = AES.decrypt(
-            request_data['encrypted_data']['content'],
-            client.key,
-            request_data['encrypted_data']['iv']
+        # Abre a parte criptografada da mensagem
+        m1_data_as_bytes = AES.decrypt(
+            request_data['encryptedData'].encode(),
+            client.key.encode()
         )
-        m1_content = json.loads(m1_content)
         
+        m1_decrypted_data = json.loads(m1_data_as_bytes.decode())
+
         # Constroi m2
         key_client_TGS = AES.generate_new_key()
 
-        data_to_client = {
-            'key client-tgs': key_client_TGS,
-            'n1': m1_content['n1']
+        data_for_client = {
+            'sessionKey_ClientTGS': key_client_TGS.decode(),
+            'n1': m1_decrypted_data['n1']
         }
-        encrypted_data_to_client, iv_to_client = AES.encrypt(json.dumps(data_to_client), client.key)
 
-        data_to_tgs = {
-            'client_id': client.client_id,
-            'ticket_expiration_date': m1_content['ticket_expiration_date'],
-            'key client-tgs': key_client_TGS
+        data_for_client_as_bytes = json.dumps(data_for_client).encode()
+        encrypted_bytes_for_client = AES.encrypt(data_for_client_as_bytes, client.key.encode())
+
+        data_for_tgs = {
+            'clientId': client.client_id,
+            'requestedExpirationTime': m1_decrypted_data['requestedExpirationTime'],
+            'sessionKey_ClientTGS': key_client_TGS.decode()
         }
-        encrypted_data_to_tgs, iv_to_tgs = AES.encrypt(json.dumps(data_to_tgs), TGS_KEY)
+
+        data_for_TGS_as_bytes = json.dumps(data_for_tgs).encode()
+        encrypted_bytes_for_tgs = AES.encrypt(data_for_TGS_as_bytes, app.config['TGS_KEY'])
 
         m2 = {
-            'client_response': {
-                'content': encrypted_data_to_client,
-                'iv': iv_to_client
-            },
-            'ticket client-tgs': {
-                'content': encrypted_data_to_tgs,
-                'iv': iv_to_tgs
-            }
+            'encryptedData': encrypted_bytes_for_client.decode(),
+            'ticketForTGS': encrypted_bytes_for_tgs.decode()
         }
 
         response = m2
@@ -79,8 +70,6 @@ def require_access():
             'Erro': 'cliente não registrado'
         }
 
-    app.logger.info(f"Sent: \n{json.dumps(response, indent=4)}")
-
-    session.close()
+    app.logger.info(f"Sending: \n{json.dumps(response, indent=4)}")
 
     return jsonify(response)

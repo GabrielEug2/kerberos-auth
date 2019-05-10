@@ -4,28 +4,18 @@ from kerberos_client.kerberos_client import KerberosClient
 
 import argparse
 import pkg_resources
-import json
 import os
-from datetime import datetime
-
+import json
 
 #CLIENT_DATA_PATH = client.data'
 CLIENT_DATA_PATH = pkg_resources.resource_filename('kerberos_client', 'client.data')
 
-
-def create_client_data_file():
-    print("--Configurando cliente--")
-    print("Realize o cadastro no serviço de autenticacao, "
-          "e depois insira os mesmos dados abaixo.")
-
-    client_id = input("ID: ")
-    client_key = input("Key: ")
-
+def save_client_data(client_id, client_key):
     client_data = {
         'client_id': client_id,
         'key': client_key
     }
-    
+
     with open(CLIENT_DATA_PATH, 'w') as f:
         json.dump(client_data, f)
 
@@ -34,17 +24,30 @@ def load_client_data():
         with open(CLIENT_DATA_PATH, 'r') as f:
             client_data = json.load(f)
     except FileNotFoundError:
-        print("[Erro] É necessário configurar o cliente.")
+        print("[Erro] Cliente não configurado.")
         exit()
-    
+
     return client_data
 
-def configure(args):
-    if not os.path.isfile(CLIENT_DATA_PATH):
-        create_client_data_file()
+### Commands
+
+def setup_client(args):
+    print("--Configurando o cliente--")
+    print("Após realizar o cadastro no serviço de autenticação, "
+          "insira os seus dados abaixo.")
+
+    client_id = input("ID: ")
+    client_key = input("Key: ")
+    
+    client_data_exists = os.path.isfile(CLIENT_DATA_PATH)
+
+    if not client_data_exists:
+        save_client_data(client_id, client_key)
+
         print("Cliente criado com sucesso.")
     else:
         client_data = load_client_data()
+
         print("Cliente já configurado")
         print(f"ID: {client_data['client_id']}")
         print(f"Key: {client_data['key']}")
@@ -54,33 +57,35 @@ def acquire_new_ticket(args):
 
     kerberus_client = KerberosClient(client_data['client_id'], client_data['key'])
 
-    kerberus_client.acquire_new_ticket(args.service_id, args.expiration_date)
+    kerberus_client.acquire_new_ticket(args.service_id, args.requested_time)
 
 def use_service(args):
     pass
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description=('Aplicação cliente de um sistema kerberus de autenticação.'
-                     'Utiliza serviços via tickets.')
-    )
-    subparsers = parser.add_subparsers(title='commands', dest='command')
-    subparsers.required = True
+    parser = argparse.ArgumentParser(description=('Aplicação cliente de um sistema de '
+                                                  'autenticacao Kerberos. Utiliza tickets '
+                                                  'para acessar serviços.'))    
+    subparsers = parser.add_subparsers(required=True, dest='command')
 
-    config_parser = subparsers.add_parser('configure', help='Realiza a configuração do cliente')
-    config_parser.set_defaults(func=configure)
+    setup_parser = subparsers.add_parser('setup', help='Configura o cliente')
+    setup_parser.set_defaults(func=setup_client)
 
     # TODO: colocar outras opções pra data de validade, por exemplo
     #       somente nas terças feiras, ou do horário X a Y
-    new_ticket_parser = subparsers.add_parser('new-ticket', help='Obtem um novo ticket')
-    new_ticket_parser.add_argument('service_id', help='ID do servico a ser utilizado')
-    new_ticket_parser.add_argument('expiration_date', help="Prazo de validade do ticket, na forma \"DD-MM-YY HH:mm\"")
-    new_ticket_parser.set_defaults(func=acquire_new_ticket)
+    request_ticket_parser = subparsers.add_parser('request-ticket', help='Obtem um novo ticket')
+    request_ticket_parser.add_argument('service_id', help='ID do servico a ser utilizado')
+    request_ticket_parser.add_argument('requested_time', help=('Prazo de validade para '
+                                                                'o ticket, no formato '
+                                                                '\"DD/MM/YY-HH:mm\"'))
+    request_ticket_parser.set_defaults(func=acquire_new_ticket)
 
-    use_service_parser = subparsers.add_parser('use', help='Tenta utilizar um determinado serviço com os tickets salvos')
+    use_service_parser = subparsers.add_parser('use', help=('Tenta acessar um serviço com os '
+                                                            'tickets salvos'))
     use_service_parser.add_argument('service_id', help='ID do servico a ser utilizado')
     use_service_parser.set_defaults(func=use_service)
 
     args = parser.parse_args()
+
     args.func(args)
