@@ -1,6 +1,6 @@
-from kerberos_as.database import Base
 from sqlalchemy import Column, String
 
+from kerberos_as.database import Base
 from kerberos_as.utils.AES import AES
 
 class Client(Base):

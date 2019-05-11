@@ -6,12 +6,13 @@ import pkg_resources
 import os
 
 from kerberos_as.utils.AES import AES
-
 from kerberos_as.database import init_db
 from kerberos_as.database import db_session
 from kerberos_as.models import Client
 
+
 CONFIG_FILE_PATH = pkg_resources.resource_filename('kerberos_as', 'config')
+
 
 def setup(args):
     config_file_exists = os.path.isfile(CONFIG_FILE_PATH)
@@ -34,15 +35,17 @@ def setup(args):
         print("Localização do arquivo de configuração:")
         print("" + CONFIG_FILE_PATH)
 
+
 def start_server(args):
     config_file_exists = os.path.isfile(CONFIG_FILE_PATH)
 
     if config_file_exists:
         subprocess.run(['start-kerberos-as-server', CONFIG_FILE_PATH])
     else:
-        print("  Arquivo de configuração não encontrado")
-        print("  Verifique se o servidor foi configurado corretamente")
+        print("[Erro] Arquivo de configuração não encontrado")
+        print(" Verifique se o servidor foi configurado corretamente")
         exit()
+
 
 def create_new_client(args):
     client_created = False
@@ -60,8 +63,8 @@ def create_new_client(args):
             db_session.commit()
 
             print("\nCliente cadastrado com sucesso")
-            print(f"  ID: {client.client_id}")
-            print(f"  Key: {client.key}")
+            print(f"ID: {client.client_id}")
+            print(f"Key: {client.key}")
 
             client_created = True
         else:
@@ -69,8 +72,9 @@ def create_new_client(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=('Serviço de Autenticacao (AS) de um '
-                                                  'sistema kerberos'))
+    parser = argparse.ArgumentParser(
+        description='Serviço de Autenticacao (AS) de um sistema kerberos'
+    )
     subparsers = parser.add_subparsers(required=True, dest='command')
 
     setup_parser = subparsers.add_parser('setup',help='Configura o servidor')

@@ -1,11 +1,11 @@
 #!/bin/bash
+
 if [ "$1" != "" ]; then
     export KERBEROS_AS_CONFIG=$1
 else
-    echo "Missing 'config' argument specifying the location of configuration file'"
+    echo "Missing 'config' argument specifying the location of configuration file"
 fi
 
 export FLASK_APP=kerberos_as.kerberos_as
-#export FLASK_APP=/home/gabriel/Workspace/seguranca_sistemas/trabalhos/t3-kerberos/auth_service/kerberos_as/kerberos_as.py:app
 export FLASK_ENV=development
 flask run -p 5000

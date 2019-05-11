@@ -1,16 +1,17 @@
+import os
+import json
+
 from flask import Flask
 from flask import request
 from flask import jsonify
 
-import json
 from kerberos_as.utils.AES import AES
-
 from kerberos_as.database import db_session
 from kerberos_as.models import Client
 
-import os
 
 app = Flask(__name__)
+
 if 'KERBEROS_AS_CONFIG' in os.environ:
     app.config.from_envvar('KERBEROS_AS_CONFIG')
 
@@ -21,22 +22,36 @@ def shutdown_session(exception=None):
 
 @app.route('/request_access', methods=['POST'])
 def require_access():
-    request_data = json.loads(request.get_json())
+    m1_data = request.get_json()
 
-    app.logger.info(f"Received: \n{json.dumps(request_data, indent=4)}")
+    app.logger.debug(f"Received: \n{json.dumps(m1_data, indent=4)}")
+
+    if ('clientId' not in m1_data) or ('encryptedData' not in m1_data):
+        app.logger.info("m1 mal formatada")
+
+        response = { 'error': 'Requisição não possui os campos necessários' }
+        return jsonify(response)
 
     # Procura o cliente
-    client = Client.query.filter_by(client_id=request_data['clientId']).first()
+    client = Client.query.filter_by(client_id=m1_data['clientId']).first()
     client_exists = client is not None
 
     if client_exists:
-        # Abre a parte criptografada da mensagem
-        m1_data_as_bytes = AES.decrypt(
-            request_data['encryptedData'].encode(),
+        # Abre a parte criptografada de m1
+        m1_decrypted_bytes = AES.decrypt(
+            m1_data['encryptedData'].encode(),
             client.key.encode()
         )
-        
-        m1_decrypted_data = json.loads(m1_data_as_bytes.decode())
+        m1_decrypted_data = json.loads(m1_decrypted_bytes.decode())
+
+        if (('serviceId' not in m1_decrypted_data) or
+            ('requestedExpirationTime' not in m1_decrypted_data) or
+            ('n1' not in m1_decrypted_data)
+           ):
+            app.logger.info("m1 mal formatada")
+
+            response = { 'error': 'Requisição não possui os campos necessários' }
+            return jsonify(response)
 
         # Constroi m2
         key_client_TGS = AES.generate_new_key()
@@ -45,31 +60,33 @@ def require_access():
             'sessionKey_ClientTGS': key_client_TGS.decode(),
             'n1': m1_decrypted_data['n1']
         }
-
-        data_for_client_as_bytes = json.dumps(data_for_client).encode()
-        encrypted_bytes_for_client = AES.encrypt(data_for_client_as_bytes, client.key.encode())
+        bytes_for_client = json.dumps(data_for_client).encode()
+        encrypted_bytes_for_client = AES.encrypt(bytes_for_client, client.key.encode())
 
         data_for_tgs = {
             'clientId': client.client_id,
             'requestedExpirationTime': m1_decrypted_data['requestedExpirationTime'],
             'sessionKey_ClientTGS': key_client_TGS.decode()
         }
-
-        data_for_TGS_as_bytes = json.dumps(data_for_tgs).encode()
-        encrypted_bytes_for_tgs = AES.encrypt(data_for_TGS_as_bytes, app.config['TGS_KEY'])
+        bytes_for_TGS = json.dumps(data_for_tgs).encode()
+        encrypted_bytes_for_tgs = AES.encrypt(bytes_for_TGS, app.config['TGS_KEY'])
 
         m2 = {
-            'encryptedData': encrypted_bytes_for_client.decode(),
+            'dataForClient': encrypted_bytes_for_client.decode(),
             'ticketForTGS': encrypted_bytes_for_tgs.decode()
         }
 
+        app.logger.info(
+            f"Permissão concedida para '{client.client_id}': \n"
+            f"  ID do serviço: {m1_decrypted_data['serviceId']}\n"
+            f"  Prazo de validade requisitado: {m1_decrypted_data['requestedExpirationTime']}\n"
+            f"  Chave de sessão para comunicação com o TGS: {key_client_TGS.decode()}"
+        )
+
         response = m2
     else:
-        print("Cliente não registrado")
-        response = {
-            'Erro': 'cliente não registrado'
-        }
+        app.logger.info(f"Cliente {m1_data['clientId']} não está registrado")
 
-    app.logger.info(f"Sending: \n{json.dumps(response, indent=4)}")
+        response = { 'error': 'Cliente não está registrado' }
 
     return jsonify(response)
