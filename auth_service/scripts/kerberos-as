@@ -73,14 +73,15 @@ def create_new_client(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Serviço de Autenticacao (AS) de um sistema kerberos'
+        description=('Serviço de Autenticacao (AS) de um sistema '
+                     'de autenticacao Kerberos')
     )
     subparsers = parser.add_subparsers(required=True, dest='command')
 
     setup_parser = subparsers.add_parser('setup',help='Configura o servidor')
     setup_parser.set_defaults(func=setup)
 
-    start_server_parser = subparsers.add_parser('start', help='Inicia o serviço de autenticacao')
+    start_server_parser = subparsers.add_parser('start', help='Inicia o AS')
     start_server_parser.set_defaults(func=start_server)
 
     new_client_parser = subparsers.add_parser('new-client', help='Cadastra um novo cliente')

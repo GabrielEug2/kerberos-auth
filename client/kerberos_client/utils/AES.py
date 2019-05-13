@@ -16,11 +16,11 @@ class AES:
 
     @classmethod
     def encrypt(cls, data, key):
-        """Criptografa os dados usando a chave.
+        """Criptografa os dados usando a chave especificada.
         
         Args:
             data (bytes): Dados a serem criptografados
-            key (bytes): Chave que deve ser usada na criptografia
+            key (bytes): Chave para a criptografia
         
         Returns:
             bytes: Dados encriptados
@@ -33,11 +33,11 @@ class AES:
 
     @classmethod
     def decrypt(cls, encrypted_data, key):
-        """Descriptografa os dados usando a chave.
+        """Descriptografa os dados usando a chave especificada.
         
         Args:
             encrypted_data (bytes): Dados a serem descriptografados
-            key (bytes): Chave que deve ser usada na criptografia
+            key (bytes): Chave para descriptografar
 
         Returns:
             bytes: Dados desencriptados

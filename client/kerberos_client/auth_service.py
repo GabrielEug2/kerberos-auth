@@ -6,10 +6,10 @@ from kerberos_client.utils.AES import AES
 from kerberos_client.utils.random_generator import RandomGenerator
 from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
 
-class AuthServiceClient:
+class AS:
     """Cliente para comunicação com o Serviço de Autenticação (AS)"""
 
-    AUTH_SERVICE_URL = 'http://localhost:5000'
+    AS_URL = 'http://localhost:5000'
 
     @classmethod
     def request_access_to_service(cls, client_id, client_key, service_id,
@@ -49,7 +49,7 @@ class AuthServiceClient:
         
         # Envia m1 pro AS, recebe m2
         try:
-            response = requests.post(f"{cls.AUTH_SERVICE_URL}/request_access", json=m1_data)
+            response = requests.post(f"{cls.AS_URL}/request_access", json=m1_data)
         except requests.exceptions.ConnectionError:
             raise ServiceDownError("Auth Service is down")
 

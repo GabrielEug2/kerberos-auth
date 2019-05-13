@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ "$1" != "" ]; then
+    export KERBEROS_TGS_CONFIG=$1
+else
+    echo "Missing 'config' argument specifying the location of configuration file"
+fi
+
+export FLASK_APP=kerberos_tgs.kerberos_tgs
+export FLASK_ENV=development
+flask run -p 6000

@@ -7,7 +7,7 @@ class AES:
     @classmethod
     def generate_new_key(cls):
         """Gera uma nova chave simétrica.
-                
+        
         Returns:
             bytes: Chave codificada em Base64
         """
