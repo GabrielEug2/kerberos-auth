@@ -5,7 +5,9 @@ import subprocess
 import pkg_resources
 import os
 
-from kerberos_tgs.utils.AES import AES
+from pymongo import MongoClient
+
+from kerberos_tgs.utils.crypto import Crypto
 
 
 CONFIG_FILE_PATH = pkg_resources.resource_filename('kerberos_tgs', 'config')
@@ -43,6 +45,36 @@ def start_server(args):
         exit()
 
 
+def create_new_service(args):
+    client = MongoClient('mongodb://localhost:27017/')
+    db = client['kerberos_tgs_db']
+    services = db.services
+
+    service_created = False
+
+    while not service_created:
+        print("--Registrando novo servico--")
+        desired_id = input("Service ID: ")
+
+        id_already_taken = services.find_one({"_id": desired_id}) is not None
+
+        if not id_already_taken:
+            service = {
+                '_id': desired_id,
+                'key': Crypto.generate_new_key().decode()
+            }
+
+            services.insert_one(service)
+
+            print("\nServico cadastrado com sucesso")
+            print(f"ID: {service['_id']}")
+            print(f"Key: {service['key']}")
+
+            service_created = True
+        else:
+            print("Servico já existe")
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=('Serviço de Concessão de Tickets (TGS) de um sistema '
@@ -56,8 +88,8 @@ if __name__ == '__main__':
     start_server_parser = subparsers.add_parser('start', help='Inicia o TGS')
     start_server_parser.set_defaults(func=start_server)
 
-    #new_service_parser = subparsers.add_parser('new-service', help='Cadastra um novo serviço')
-    #new_service_parser.set_defaults(func=create_new_service)
+    new_service_parser = subparsers.add_parser('new-service', help='Cadastra um novo serviço')
+    new_service_parser.set_defaults(func=create_new_service)
 
     args = parser.parse_args()
 

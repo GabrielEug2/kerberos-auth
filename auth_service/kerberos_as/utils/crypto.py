@@ -1,7 +1,7 @@
 
 from cryptography.fernet import Fernet
 
-class AES:
+class Crypto:
     """Criptografia AES com modo CBC, chaves de 128 bits e padding PKCS7."""
 
     @classmethod

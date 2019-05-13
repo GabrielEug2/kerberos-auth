@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from kerberos_client.utils.AES import AES
+from kerberos_client.utils.crypto import Crypto
 from kerberos_client.utils.random_generator import RandomGenerator
 from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
 
@@ -36,42 +36,26 @@ class TGS:
             InvalidResponseError: se a resposta do TGS veio em um formato inesperado
         """
 
-        # Constroi m3
+        # Constroi M3
         data_to_encrypt = {
             'clientId': client_id,
             'serviceId': service_id,
             'requestedExpirationTime': requested_expiration_time,
             'n2': RandomGenerator.rand_int()
         }
-        bytes_to_encrypt = json.dumps(data_to_encrypt).encode()
-        encrypted_bytes = AES.encrypt(bytes_to_encrypt, session_key)
+        encrypted_bytes = Crypto.encrypt(json.dumps(data_to_encrypt).encode(), session_key)
 
-        m3_data = {
+        message3 = {
             'encryptedData': encrypted_bytes.decode(),
             'ticket': ticket.decode()
         }
         
-        # Envia m3 pro AS, recebe m4
+        # Envia M3 para o TGS, recebe como resposta M4
         try:
-            response = requests.post(f"{cls.TGS_URL}/request_ticket", json=m3_data)
+            response = requests.post(f"{cls.TGS_URL}/request_ticket", json=message3)
         except requests.exceptions.ConnectionError:
             raise ServiceDownError("TGS is down")
 
-        m4 = response.json()
+        message4 = response.json()
 
-        # Interpreta m4
-        # if ('dataForClient' in m2) and ('ticketForTGS' in m2):
-        #     m2_decrypted_bytes = AES.decrypt(
-        #         m2['dataForClient'].encode(),
-        #         client_key
-        #     )
-        #     m2_decrypted_data = json.loads(m2_decrypted_bytes.decode())
-
-        #     session_key = m2_decrypted_data['sessionKey_ClientTGS'].encode()
-        #     ticket = m2['ticketForTGS'].encode()
-
-        #     return session_key, ticket
-        # elif 'error' in m2:
-        #     raise ServerError(m2['error'])
-        # else:
-        #     raise InvalidResponseError("Resposta não possui os campos esperados")
+        # Interpreta M4

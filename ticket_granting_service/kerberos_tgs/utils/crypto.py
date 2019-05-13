@@ -1,13 +1,13 @@
 
 from cryptography.fernet import Fernet
 
-class AES:
+class Crypto:
     """Criptografia AES com modo CBC, chaves de 128 bits e padding PKCS7."""
 
     @classmethod
     def generate_new_key(cls):
         """Gera uma nova chave simétrica.
-        
+                
         Returns:
             bytes: Chave codificada em Base64
         """

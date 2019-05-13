@@ -5,10 +5,10 @@ import subprocess
 import pkg_resources
 import os
 
-from kerberos_as.utils.AES import AES
+from kerberos_as.utils.crypto import Crypto
+from kerberos_as.models import Client
 from kerberos_as.database import init_db
 from kerberos_as.database import db_session
-from kerberos_as.models import Client
 
 
 CONFIG_FILE_PATH = pkg_resources.resource_filename('kerberos_as', 'config')
@@ -22,7 +22,7 @@ def setup(args):
         init_db()
 
         print("Registrando chave do TGS...")
-        tgs_key = AES.generate_new_key().decode('utf-8')
+        tgs_key = Crypto.generate_new_key().decode()
 
         with open(CONFIG_FILE_PATH, 'w') as f:
             f.write(f"TGS_KEY = \"{tgs_key}\"")

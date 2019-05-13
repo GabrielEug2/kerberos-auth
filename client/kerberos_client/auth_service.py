@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from kerberos_client.utils.AES import AES
+from kerberos_client.utils.crypto import Crypto
 from kerberos_client.utils.random_generator import RandomGenerator
 from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
 
@@ -33,41 +33,37 @@ class AS:
             InvalidResponseError: se a resposta do AS veio em um formato inesperado
         """
 
-        # Constroi m1
+        # Constroi M1
         data_to_encrypt = {
             'serviceId': service_id,
             'requestedExpirationTime': requested_expiration_time,
             'n1': RandomGenerator.rand_int()
         }
-        bytes_to_encrypt = json.dumps(data_to_encrypt).encode()
-        encrypted_bytes = AES.encrypt(bytes_to_encrypt, client_key)
+        encrypted_bytes = Crypto.encrypt(json.dumps(data_to_encrypt).encode(), client_key)
 
-        m1_data = {
+        message1 = {
             'clientId': client_id,
             'encryptedData': encrypted_bytes.decode()
         }
         
-        # Envia m1 pro AS, recebe m2
+        # Envia a M1 para o AS, recebe como resposta M2
         try:
-            response = requests.post(f"{cls.AS_URL}/request_access", json=m1_data)
+            response = requests.post(f"{cls.AS_URL}/request_access", json=message1)
         except requests.exceptions.ConnectionError:
             raise ServiceDownError("Auth Service is down")
 
-        m2 = response.json()
+        message2 = response.json()
 
-        # Interpreta m2
-        if ('dataForClient' in m2) and ('ticketForTGS' in m2):
-            m2_decrypted_bytes = AES.decrypt(
-                m2['dataForClient'].encode(),
-                client_key
-            )
-            m2_decrypted_data = json.loads(m2_decrypted_bytes.decode())
+        # Interpreta M2
+        if dictutils.has_keys(message2, ['dataForClient', 'ticketForTGS']):
+            decrypted_bytes = Crypto.decrypt(message2['dataForClient'].encode(), client_key)
+            decrypted_data = json.loads(decrypted_bytes.decode())
 
-            session_key = m2_decrypted_data['sessionKey_ClientTGS'].encode()
-            ticket = m2['ticketForTGS'].encode()
+            session_key = decrypted_data['sessionKey_ClientTGS'].encode()
+            ticket = message2['ticketForTGS'].encode()
 
             return session_key, ticket
-        elif 'error' in m2:
-            raise ServerError(m2['error'])
+        elif 'error' in message2:
+            raise ServerError(message2['error'])
         else:
-            raise InvalidResponseError("Resposta não possui os campos esperados")
+            raise InvalidResponseError("Resposta do AS não possui os campos esperados")

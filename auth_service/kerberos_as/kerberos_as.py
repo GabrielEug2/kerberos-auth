@@ -5,9 +5,10 @@ from flask import Flask
 from flask import request
 from flask import jsonify
 
-from kerberos_as.utils.AES import AES
-from kerberos_as.database import db_session
+from kerberos_as.utils.crypto import Crypto
+from kerberos_as.utils import dictutils
 from kerberos_as.models import Client
+from kerberos_as.database import db_session
 
 
 app = Flask(__name__)
@@ -22,68 +23,58 @@ def shutdown_session(exception=None):
 
 @app.route('/request_access', methods=['POST'])
 def request_access():
-    m1_data = request.get_json()
+    message1 = request.get_json()
+    app.logger.debug(f"Received: \n{json.dumps(message1, indent=4)}")
 
-    app.logger.debug(f"Received: \n{json.dumps(m1_data, indent=4)}")
-
-    expected_m1_fields = ['clientId', 'encryptedData']
-    if not has_keys(m1_data, expected_m1_fields):
-        app.logger.info('m1 não segue o formato especificado')
-        return jsonify(error=('Requisição não segue o formato especificado. '
+    if not dictutils.has_keys(message1, ['clientId', 'encryptedData']):
+        app.logger.info('Mensagem não segue o formato especificado')
+        return jsonify(error=('Mensagem não segue o formato especificado. '
                               'Verifique a documentação.'))
 
     # Procura o cliente
-    client = Client.query.filter_by(client_id=m1_data['clientId']).first()
-
+    client = Client.query.filter_by(client_id=message1['clientId']).first()
     client_exists = client is not None
+
     if not client_exists:
-        app.logger.info(f"Cliente {m1_data['clientId']} não está registrado")
+        app.logger.info(f"Cliente {message1['clientId']} não está registrado")
         return jsonify(error='Cliente não registrado.')
 
-    # Abre a parte criptografada de m1
-    m1_decrypted_bytes = AES.decrypt(
-        m1_data['encryptedData'].encode(),
-        client.key.encode()
-    )
-    m1_decrypted_data = json.loads(m1_decrypted_bytes.decode())
+    # Abre a parte criptografada da message1
+    decrypted_bytes = Crypto.decrypt(message1['encryptedData'].encode(), client.key.encode())
+    decrypted_data = json.loads(decrypted_bytes.decode())
 
-    expected_encrypted_fields = ['serviceId','requestedExpirationTime', 'n1']
-    if not has_keys(m1_decrypted_data, expected_encrypted_fields):
-        app.logger.info('Falha ao descriptografar m1')
-        return jsonify(error='Falha ao descriptografar m1.')
+    if not dictutils.has_keys(decrypted_data, ['serviceId','requestedExpirationTime', 'n1']):
+        app.logger.info('Falha ao abrir campo criptografado da mensagem')
+        return jsonify(error=('Falha ao abrir campo criptografado da mensagem.\n'
+                              'Ou a requisição não segue o formato especificado '
+                              'ou a chave usada na criptografia é diferente da '
+                              'registrada para este cliente.'))
 
-    # Constroi m2
-    key_client_TGS = AES.generate_new_key()
+    # Constroi a messagem 2 e envia como resposta
+    key_client_TGS = Crypto.generate_new_key()
 
     data_for_client = {
         'sessionKey_ClientTGS': key_client_TGS.decode(),
-        'n1': m1_decrypted_data['n1']
+        'n1': decrypted_data['n1']
     }
-    bytes_for_client = json.dumps(data_for_client).encode()
-    encrypted_bytes_for_client = AES.encrypt(bytes_for_client, client.key.encode())
+    encrypted_bytes_for_client = Crypto.encrypt(json.dumps(data_for_client).encode(),
+                                                client.key.encode())
 
     data_for_tgs = {
         'clientId': client.client_id,
-        'requestedExpirationTime': m1_decrypted_data['requestedExpirationTime'],
+        'requestedExpirationTime': decrypted_data['requestedExpirationTime'],
         'sessionKey_ClientTGS': key_client_TGS.decode()
     }
-    bytes_for_TGS = json.dumps(data_for_tgs).encode()
-    encrypted_bytes_for_tgs = AES.encrypt(bytes_for_TGS, app.config['TGS_KEY'])
+    encrypted_bytes_for_tgs = Crypto.encrypt(json.dumps(data_for_tgs).encode(),
+                                             app.config['TGS_KEY'].encode())
 
-    m2 = {
+    message2 = {
         'dataForClient': encrypted_bytes_for_client.decode(),
         'ticketForTGS': encrypted_bytes_for_tgs.decode()
     }
 
     app.logger.info(f"Permissão concedida para '{client.client_id}': \n"
-                    f"    ID do serviço: {m1_decrypted_data['serviceId']}\n"
-                    f"    Prazo de validade requisitado: {m1_decrypted_data['requestedExpirationTime']}\n"
+                    f"    ID do serviço: {decrypted_data['serviceId']}\n"
+                    f"    Prazo de validade requisitado: {decrypted_data['requestedExpirationTime']}\n"
                     f"    Chave de sessão para comunicação com o TGS: {key_client_TGS.decode()}")
-    return jsonify(m2)
-
-
-def has_keys(dictionary, keys):
-    if all(key in dictionary for key in keys):
-        return True
-    else:
-        return False
+    return jsonify(message2)
