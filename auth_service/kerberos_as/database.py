@@ -6,7 +6,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 #DB_URL = 'sqlite:///database.db'
-DB_URL = 'mysql+mysqldb://kerberos_as:kerberos_as@127.0.0.1/kerberos_as_db'
+DB_URL = 'mysql+pymysql://kerberos_as:kerberos_as@127.0.0.1/kerberos_as_db'
 
 engine = create_engine(DB_URL)
 db_session = scoped_session(sessionmaker(autocommit=False,

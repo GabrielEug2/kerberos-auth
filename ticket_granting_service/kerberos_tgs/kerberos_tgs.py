@@ -10,7 +10,7 @@ from kerberos_as.utils.AES import AES
 
 
 app = Flask(__name__)
-app.config["MONGO_URI"] = "mongodb://localhost:27017/myDatabase"
+app.config["MONGO_URI"] = "mongodb://localhost:27017/kerberos_tgs_db"
 mongo = PyMongo(app)
 
 if 'KERBEROS_TGS_CONFIG' in os.environ:
@@ -76,7 +76,7 @@ def request_ticket():
     #M4 = [{K_c_s + T_A + N2}K_c_tgs + T_c_s]
     #Onde T_c_s = {ID_C + T_A + K_c_s}K_s
 
-    return jsonify(m4)
+    return jsonify('')
 
 
 def has_keys(dictionary, keys):
