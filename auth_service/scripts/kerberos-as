@@ -33,7 +33,7 @@ def setup(args):
     else:
         print("Servidor já configurado\n")
         print("Localização do arquivo de configuração:")
-        print("" + CONFIG_FILE_PATH)
+        print(CONFIG_FILE_PATH)
 
 
 def start_server(args):
@@ -43,7 +43,7 @@ def start_server(args):
         subprocess.run(['start-kerberos-as-server', CONFIG_FILE_PATH])
     else:
         print("[Erro] Arquivo de configuração não encontrado")
-        print(" Verifique se o servidor foi configurado corretamente")
+        print("Verifique se o servidor foi configurado corretamente")
         exit()
 
 
@@ -65,7 +65,7 @@ def create_new_client(args):
             print("\nCliente cadastrado com sucesso")
             print(f"ID: {client.client_id}")
             print(f"Key: {client.key}")
-
+            
             client_created = True
         else:
             print("Cliente já existe")
@@ -88,5 +88,4 @@ if __name__ == '__main__':
     new_client_parser.set_defaults(func=create_new_client)
 
     args = parser.parse_args()
-
     args.func(args)

@@ -5,9 +5,8 @@ O Kerberos é ...
 - componentes
 - estrutura das mensagens
 
-## Instalação
+## Executando
 
-Veja o README de cada componente para detalhes da instalação de cada um.
+Cada componente é uma aplicação separada, e deve ser executado em um terminal diferente.
 
-## Execução
-
+Consulte o README de cada um para ver detalhes da instalação.

@@ -7,11 +7,12 @@ from sqlalchemy.ext.declarative import declarative_base
 
 #DB_URL = 'sqlite:///database.db'
 DB_URL = 'mysql+pymysql://kerberos_as:kerberos_as@127.0.0.1/kerberos_as_db'
-
 engine = create_engine(DB_URL)
+
 db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
+
 Base = declarative_base()
 Base.query = db_session.query_property()
 

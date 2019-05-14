@@ -8,5 +8,5 @@ setup(
         'cryptography', 'requests'
     ],
     scripts=['scripts/kerberos-client'],
-    package_data={'kerberos_client': 'client.data'}
+    # package_data={'kerberos_client': 'client.data'}
 )

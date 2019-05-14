@@ -1,7 +1,14 @@
 
+import pkg_resources
+import json
+
 from kerberos_client.auth_service import AS
 from kerberos_client.ticket_granting_service import TGS
 from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
+
+
+CLIENT_DATA_PATH = pkg_resources.resource_filename('kerberos_client', 'client.data')
+
 
 class KerberosClient:
     """Cliente de um sistema de autenticação Kerberos."""
@@ -53,7 +60,7 @@ class KerberosClient:
 
         print("Obtendo ticket de acesso através do Serviço de Concessão de Tickets (TGS)...")
         try:
-            session_key, ticket = TGS.request_ticket_for_service(
+            session_key, ticket, autorized_time = TGS.request_ticket_for_service(
                 client_id=self.client_id,
                 service_id=service_id,
                 requested_expiration_time=requested_expiration_time,
@@ -71,6 +78,18 @@ class KerberosClient:
             print("[Erro] Não foi possível parsear a resposta do TGS")
             print(e)
             return False
+
+        with open(CLIENT_DATA_PATH, 'r') as f:
+            client_data = json.load(f)
+
+        client_data['tickets'][service_id] = {
+            'session_key': session_key.decode(),
+            'ticket': ticket.decode(),
+            'autorized_time': autorized_time
+        }
+           
+        with open(CLIENT_DATA_PATH, 'w') as f:
+            json.dump(client_data, f, indent=4)
 
         return True
 

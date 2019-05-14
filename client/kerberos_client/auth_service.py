@@ -3,6 +3,7 @@ import json
 import requests
 
 from kerberos_client.utils.crypto import Crypto
+from kerberos_client.utils import dictutils
 from kerberos_client.utils.random_generator import RandomGenerator
 from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
 
@@ -52,9 +53,12 @@ class AS:
         except requests.exceptions.ConnectionError:
             raise ServiceDownError("Auth Service is down")
 
-        message2 = response.json()
-
         # Interpreta M2
+        try:
+            message2 = response.json()
+        except ValueError:
+            raise InvalidResponseError("Resposta do AS mal formatada")
+
         if dictutils.has_keys(message2, ['dataForClient', 'ticketForTGS']):
             decrypted_bytes = Crypto.decrypt(message2['dataForClient'].encode(), client_key)
             decrypted_data = json.loads(decrypted_bytes.decode())

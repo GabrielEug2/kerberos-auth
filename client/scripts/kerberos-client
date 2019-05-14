@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 
 import argparse
-import pkg_resources
 import os
 import json
 
-from kerberos_client.kerberos_client import KerberosClient
-
-
-CLIENT_DATA_PATH = pkg_resources.resource_filename('kerberos_client', 'client.data')
+from kerberos_client.kerberos_client import KerberosClient, CLIENT_DATA_PATH
 
 
 def save_client_data(client_id, client_key):
@@ -21,11 +17,12 @@ def save_client_data(client_id, client_key):
 
     client_data = {
         'client_id': client_id,
-        'key': client_key.decode()
+        'key': client_key.decode(),
+        'tickets': {}
     }
 
     with open(CLIENT_DATA_PATH, 'w') as f:
-        json.dump(client_data, f)
+        json.dump(client_data, f, indent=4)
 
 
 def load_client_data():
@@ -33,8 +30,9 @@ def load_client_data():
     
     Returns:
         dict: Dados do cliente. Possui as chaves
-              "client_id" (string) e "key" (bytes).
-              Retorna None se não houverem dados salvos
+              "client_id" (string), "key" (bytes)
+              e "tickets" (dict). Retorna None se
+              não houverem dados salvos
     """
 
     try:
@@ -56,7 +54,7 @@ def setup_client(args):
     if not client_data_exists:
         print("--Primeira configuração--")
         print("Realize o cadastro no Serviço de Autenticação, e então "
-              "insira os mesmos abaixo.")
+              "insira os mesmos dados abaixo.")
         client_id = input("ID: ")
         client_key = input("Key: ")
 
@@ -73,14 +71,38 @@ def setup_client(args):
 
 def acquire_new_ticket(args):
     client_data = load_client_data()
-    kerberus_client = KerberosClient(client_data['client_id'], client_data['key'])
 
+    if client_data is None:
+        print("Configure o cliente antes.")
+        exit()
+
+    kerberus_client = KerberosClient(client_data['client_id'], client_data['key'])
     got_ticket = kerberus_client.acquire_new_ticket(args.service_id, args.requested_time)
 
     if got_ticket:
         print("Ticket obtido com sucesso")
     else:
         print("Falha ao obter o ticket")
+
+
+def show_tickets(args):
+    client_data = load_client_data()
+
+    if client_data is None:
+        print("Configure o cliente antes.")
+        exit()
+
+    tickets = client_data['tickets']
+
+    if len(tickets) > 0:
+        for service_name, ticket in tickets.items():
+            print(f"Servico: {service_name}")
+            print(f"    Chave de sessão: {ticket['session_key']}")
+            print(f"    Ticket: {ticket['ticket']}")
+            print(f"    Validade: {ticket['autorized_time']}")
+            print()
+    else:
+        print("Nenhum ticket salvo")
 
 
 def use_service(args):
@@ -107,12 +129,13 @@ if __name__ == '__main__':
     )
     request_ticket_parser.set_defaults(func=acquire_new_ticket)
 
-    use_service_parser = subparsers.add_parser('use',
-        help='Tenta acessar um serviço com os tickets salvos'
-    )
+    use_service_parser = subparsers.add_parser('use', help=('Tenta acessar um serviço '
+                                                            'com os tickets salvos'))
     use_service_parser.add_argument('service_id', help='ID do servico a ser utilizado')
     use_service_parser.set_defaults(func=use_service)
 
-    args = parser.parse_args()
+    show_tickets_parser = subparsers.add_parser('show', help='Exibe os tickets salvos')
+    show_tickets_parser.set_defaults(func=show_tickets)
 
+    args = parser.parse_args()
     args.func(args)

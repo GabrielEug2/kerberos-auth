@@ -6,17 +6,16 @@ from flask import request
 from flask import jsonify
 from flask_pymongo import PyMongo
 
-from kerberos_as.utils.crypto import Crypto
-from kerberos_as.utils import dictutils
+from kerberos_tgs.utils.crypto import Crypto
+from kerberos_tgs.utils import dictutils
 
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/kerberos_tgs_db"
-mongo = PyMongo(app)
-
 if 'KERBEROS_TGS_CONFIG' in os.environ:
     app.config.from_envvar('KERBEROS_TGS_CONFIG')
 
+mongo = PyMongo(app)
 
 @app.route('/request_ticket', methods=['POST'])
 def request_ticket():
@@ -36,7 +35,7 @@ def request_ticket():
     expected_tgs_ticket_fields = [
         'clientId', 'requestedExpirationTime', 'sessionKey_ClientTGS'
     ]
-    if not has_keys(tgs_ticket, expected_tgs_ticket_fields):
+    if not dictutils.has_keys(tgs_ticket, expected_tgs_ticket_fields):
         app.logger.info('Falha ao abrir o ticket do AS')
         return jsonify(error='Falha ao abrir o ticket.')
 
@@ -48,7 +47,7 @@ def request_ticket():
     expected_encrypted_fields = [
         'clientId', 'serviceId', 'requestedExpirationTime', 'n2'
     ]
-    if not has_keys(decrypted_data, expected_encrypted_fields):
+    if not dictutils.has_keys(decrypted_data, expected_encrypted_fields):
         app.logger.info('Falha ao abrir campo criptografado da mensagem')
         return jsonify(error=('Falha ao abrir campo criptografado da mensagem.\n'
                               'Ou a requisição não segue o formato especificado '
@@ -63,11 +62,11 @@ def request_ticket():
         return jsonify(error='Dados não batem com os do ticket.')
 
     # Procura o serviço
-    service = mongo.db.services.find({"_id": decrypted_data['serviceId']})
+    service = mongo.db.services.find_one({"_id": decrypted_data['serviceId']})
 
     # Constroi M4
-    key_client_service = Crypto.generate_new_key()
     # Autoriza o tanto que o cliente pediu, mas poderia só deixar uma parte do tempo
+    key_client_service = Crypto.generate_new_key()
     autorized_expiration_time = decrypted_data['requestedExpirationTime']
 
     data_for_client = {
@@ -93,6 +92,6 @@ def request_ticket():
 
     app.logger.info(f"Ticket fornecido para '{tgs_ticket['clientId']}: \n"
                     f"    ID do serviço: {decrypted_data['serviceId']}\n"
-                    f"    Prazo de validade autorizado: {autorizedExpirationTime}\n"
+                    f"    Prazo de validade autorizado: {autorized_expiration_time}\n"
                     f"    Chave de sessão para comunicação com o serviço: {key_client_service.decode()}")
     return jsonify(message4)

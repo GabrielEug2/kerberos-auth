@@ -17,21 +17,16 @@ def setup(args):
     config_file_exists = os.path.isfile(CONFIG_FILE_PATH)
 
     if not config_file_exists:
-        print("Inicializando banco de dados...")
-        # Cria o banco no mongo
-
         tgs_key = input("Insira a chave simétrica gerada pelo AS: ")
 
         with open(CONFIG_FILE_PATH, 'w') as f:
-            f.write(tgs_key)
+            f.write(f"TGS_KEY = \"{tgs_key}\"")
 
         print("Configuração concluída\n")
     else:
-        with open(CONFIG_FILE_PATH, 'r') as f:
-            tgs_key = f.read()
-
         print("Servidor já configurado\n")
-        print(f"Chave do TGS:\n{tgs_key}")
+        print("Localização do arquivo de configuração:")
+        print(CONFIG_FILE_PATH)
 
 
 def start_server(args):
@@ -41,7 +36,7 @@ def start_server(args):
         subprocess.run(['start-kerberos-tgs-server', CONFIG_FILE_PATH])
     else:
         print("[Erro] Arquivo de configuração não encontrado")
-        print(" Verifique se o servidor foi configurado corretamente")
+        print("Verifique se o servidor foi configurado corretamente")
         exit()
 
 
@@ -49,14 +44,13 @@ def create_new_service(args):
     client = MongoClient('mongodb://localhost:27017/')
     db = client['kerberos_tgs_db']
     services = db.services
-
     service_created = False
 
     while not service_created:
         print("--Registrando novo servico--")
         desired_id = input("Service ID: ")
 
-        id_already_taken = services.find_one({"_id": desired_id}) is not None
+        id_already_taken = services.find_one({'_id': desired_id}) is not None
 
         if not id_already_taken:
             service = {
@@ -77,8 +71,8 @@ def create_new_service(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description=('Serviço de Concessão de Tickets (TGS) de um sistema '
-                     'de autenticacao Kerberos')
+        description=('Serviço de Concessão de Tickets (TGS) de um '
+                     'sistema de autenticacao Kerberos')
     )
     subparsers = parser.add_subparsers(required=True, dest='command')
 
@@ -92,5 +86,4 @@ if __name__ == '__main__':
     new_service_parser.set_defaults(func=create_new_service)
 
     args = parser.parse_args()
-
     args.func(args)

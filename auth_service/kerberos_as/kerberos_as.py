@@ -12,7 +12,6 @@ from kerberos_as.database import db_session
 
 
 app = Flask(__name__)
-
 if 'KERBEROS_AS_CONFIG' in os.environ:
     app.config.from_envvar('KERBEROS_AS_CONFIG')
 
@@ -39,7 +38,7 @@ def request_access():
         app.logger.info(f"Cliente {message1['clientId']} não está registrado")
         return jsonify(error='Cliente não registrado.')
 
-    # Abre a parte criptografada da message1
+    # Abre a parte criptografada da mensagem
     decrypted_bytes = Crypto.decrypt(message1['encryptedData'].encode(), client.key.encode())
     decrypted_data = json.loads(decrypted_bytes.decode())
 

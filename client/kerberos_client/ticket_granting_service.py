@@ -3,6 +3,7 @@ import json
 import requests
 
 from kerberos_client.utils.crypto import Crypto
+from kerberos_client.utils import dictutils
 from kerberos_client.utils.random_generator import RandomGenerator
 from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
 
@@ -56,6 +57,22 @@ class TGS:
         except requests.exceptions.ConnectionError:
             raise ServiceDownError("TGS is down")
 
-        message4 = response.json()
-
         # Interpreta M4
+        try:
+            message4 = response.json()
+        except ValueError:
+            raise InvalidResponseError("Resposta do TGS mal formatada")
+
+        if dictutils.has_keys(message4, ['dataForClient', 'accessTicket']):
+            decrypted_bytes = Crypto.decrypt(message4['dataForClient'].encode(), session_key)
+            decrypted_data = json.loads(decrypted_bytes.decode())
+
+            service_session_key = decrypted_data['sessionKey_ClientService'].encode()
+            access_ticket = message4['accessTicket'].encode()
+            autorized_time = decrypted_data['autorizedExpirationTime']
+
+            return service_session_key, access_ticket, autorized_time
+        elif 'error' in message4:
+            raise ServerError(message4['error'])
+        else:
+            raise InvalidResponseError("Resposta do TGS não possui os campos esperados")
