@@ -2,9 +2,8 @@ import json
 
 import requests
 
-from kerberos_client.utils.crypto import Crypto
-from kerberos_client.utils import dictutils
-from kerberos_client.utils.random_generator import RandomGenerator
+from kerberos_client.crypto import Crypto
+from kerberos_client.random import Random
 from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
 
 class AS:
@@ -14,19 +13,21 @@ class AS:
 
     @classmethod
     def request_access_to_service(cls, client_id, client_key, service_id,
-                                  requested_expiration_time):
+                                  requested_time):
         """Obtem uma chave de sessão e um ticket para uso no TGS.
 
         Args:
             client_id (str): ID do cliente atual
             client_key (bytes): Chave do cliente atual
             service_id (str): ID do serviço que o cliente quer acessar
-            requested_expiration_time (str): Tempo solicitado para uso do serviço
+            requested_time (str): Tempo solicitado para uso do serviço
 
         Returns:
-            session_key (bytes): Chave que deve ser usada para a
-                criptografia na comunicação com o TGS
-            ticket (bytes): Ticket contendo informações do AS para o TGS.
+            tuple: informações relacionadas ao ticket para uso no TGS.
+                Contém:
+
+                session_key (bytes): Chave para comunicação com o TGS
+                ticket (bytes): Ticket criptografado do AS para o TGS
 
         Raises:
             ServiceDownError: se o AS não respondeu
@@ -37,8 +38,8 @@ class AS:
         # Constroi M1
         data_to_encrypt = {
             'serviceId': service_id,
-            'requestedExpirationTime': requested_expiration_time,
-            'n1': RandomGenerator.rand_int()
+            'requestedTime': requested_time,
+            'n1': Random.rand_int()
         }
         encrypted_bytes = Crypto.encrypt(json.dumps(data_to_encrypt).encode(), client_key)
 
@@ -56,18 +57,18 @@ class AS:
         # Interpreta M2
         try:
             message2 = response.json()
+
+            if all(key in message2 for key in ['dataForClient', 'ticketForTGS']):
+                decrypted_bytes = Crypto.decrypt(message2['dataForClient'].encode(), client_key)
+                decrypted_data = json.loads(decrypted_bytes.decode())
+
+                session_key = decrypted_data['sessionKey_ClientTGS'].encode()
+                ticket = message2['ticketForTGS'].encode()
+
+                return session_key, ticket
+            elif 'error' in message2:
+                raise ServerError(message2['error'])
+            else:
+                raise InvalidResponseError("Resposta do AS não tem os campos esperados")
         except ValueError:
-            raise InvalidResponseError("Resposta do AS mal formatada")
-
-        if dictutils.has_keys(message2, ['dataForClient', 'ticketForTGS']):
-            decrypted_bytes = Crypto.decrypt(message2['dataForClient'].encode(), client_key)
-            decrypted_data = json.loads(decrypted_bytes.decode())
-
-            session_key = decrypted_data['sessionKey_ClientTGS'].encode()
-            ticket = message2['ticketForTGS'].encode()
-
-            return session_key, ticket
-        elif 'error' in message2:
-            raise ServerError(message2['error'])
-        else:
-            raise InvalidResponseError("Resposta do AS não possui os campos esperados")
+            raise InvalidResponseError("Erro ao fazer o parsing da resposta do AS")

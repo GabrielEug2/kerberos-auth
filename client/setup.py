@@ -7,6 +7,5 @@ setup(
     install_requires=[
         'cryptography', 'requests'
     ],
-    scripts=['scripts/kerberos-client'],
-    # package_data={'kerberos_client': 'client.data'}
+    scripts=['scripts/kerberos-client']
 )

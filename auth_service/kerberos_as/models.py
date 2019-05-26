@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String
 
 from kerberos_as.database import Base
-from kerberos_as.utils.crypto import Crypto
+from kerberos_as.crypto import Crypto
 
 class Client(Base):
     __tablename__ = 'clients'

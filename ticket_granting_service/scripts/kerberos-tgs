@@ -7,7 +7,7 @@ import os
 
 from pymongo import MongoClient
 
-from kerberos_tgs.utils.crypto import Crypto
+from kerberos_tgs.crypto import Crypto
 
 
 CONFIG_FILE_PATH = pkg_resources.resource_filename('kerberos_tgs', 'config')
@@ -30,9 +30,9 @@ def setup(args):
 
 
 def start_server(args):
-    config_file_exists = os.path.isfile(CONFIG_FILE_PATH)
+    server_is_configured = os.path.isfile(CONFIG_FILE_PATH)
 
-    if config_file_exists:
+    if server_is_configured:
         subprocess.run(['start-kerberos-tgs-server', CONFIG_FILE_PATH])
     else:
         print("[Erro] Arquivo de configuração não encontrado")
@@ -44,8 +44,8 @@ def create_new_service(args):
     client = MongoClient('mongodb://localhost:27017/')
     db = client['kerberos_tgs_db']
     services = db.services
-    service_created = False
 
+    service_created = False
     while not service_created:
         print("--Registrando novo servico--")
         desired_id = input("Service ID: ")

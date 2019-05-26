@@ -1,6 +1,6 @@
 import secrets
 
-class RandomGenerator:
+class Random:
     """Gerador de valores aleatórios"""
 
     @classmethod

@@ -1,0 +1,20 @@
+[
+  {
+    "serviceId": "service1",
+    "autorizedTime": "30/05/19-22:00",
+    "sessionKey": "WHLv_I-ZvYlhrYhVyPI1AH4ELJ7K8lyz1XnjoRMzVgk=",
+    "ticket": "gAAAAABc62C1_CjU2HuLWx7JThSxuf4t8EsFbTvb_Uz2ib_HkQ5kdutuOZx5rN2RF2QORyo1OtKJAoFtRkxy2QuduPeKhGBsWSyFuvnu8Wfvz-uTU2hfB8sqkF21FrW5x5438XDQfO8XMTVCIwLUIM8UbAK5p_3ZpcRwIwi3q5VHKfBH85ozLWVnol-2yhsHlihU2IhOFWeIqvmMjwJiNchMQBnOR_e7ANBdwntnTIKOY6t4qG5d0xXS1eAMu7r7Blep2jR86e0_"
+  },
+  {
+    "serviceId": "service1",
+    "autorizedTime": "30/05/19-22:00",
+    "sessionKey": "YkGv4VK4YFig6Bvz1wc-CSUm3ZfogZtkUrDIvb5XHF8=",
+    "ticket": "gAAAAABc62Db0dadvgEcQRzL-UPeIcJw2pnk232nSPq8DLvhIOJj7gwYestjS_tu_96UVpxV08jNM-rNTQE_otmX5UOkc8yIfJE7inpNatKSamWgpVxKSuagt9XJQJqeZyDOc-OpQQcy8czG5uNdfYOYLVtS8hpj0OtneFV9QQ6j9seGnFYQ-sOwo12lTbQAngSd25tky6zA5roW8ylBMWL4mMeQSqnpYiS1rYedVRFe_pQIq58rtxvxcyNBAxE_7K1BP563NUWa"
+  },
+  {
+    "serviceId": "service1",
+    "autorizedTime": "30/05/19-22:00",
+    "sessionKey": "A6B86gEse9bHte3R4JkTxOtms8dXzj4tcQCpsB8VPtA=",
+    "ticket": "gAAAAABc62EKl1hKLP4cGHeMMTPzDST_W3JTLDU5K9EACGcNdvuPAecboGEz203ZNVwg5tS9jFMgq02M0fOVVT9Pm5sNnl9cNFoc9-uFAaOmm6jBXQJCELdTYVNxG03EydJCsWzCBpGTDPjKXA1kLRZmiTZsyFgsxocnVF74RCMdTv3HMlO6wo3xL1Fdmj_GqWupMNlr5G4oJkv4B3bHfTpDu2X3bi51t401P0OSUzkr55OykTrgcy18yoy2DX3gZnMDegRWiPNe"
+  }
+]

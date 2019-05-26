@@ -7,6 +7,5 @@ setup(
     install_requires=[
         'flask', 'sqlalchemy', 'PyMySQL', 'cryptography'
     ],
-    scripts=['scripts/kerberos-as', 'scripts/start-kerberos-as-server'],
-    package_data={'kerberos_as': 'config'}
+    scripts=['scripts/kerberos-as', 'scripts/start-kerberos-as-server']
 )

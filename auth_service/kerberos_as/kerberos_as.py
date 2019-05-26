@@ -5,8 +5,7 @@ from flask import Flask
 from flask import request
 from flask import jsonify
 
-from kerberos_as.utils.crypto import Crypto
-from kerberos_as.utils import dictutils
+from kerberos_as.crypto import Crypto
 from kerberos_as.models import Client
 from kerberos_as.database import db_session
 
@@ -25,10 +24,10 @@ def request_access():
     message1 = request.get_json()
     app.logger.debug(f"Received: \n{json.dumps(message1, indent=4)}")
 
-    if not dictutils.has_keys(message1, ['clientId', 'encryptedData']):
+    expected_fields_in_m1 = ['clientId', 'encryptedData']
+    if not all(key in message1 for key in expected_fields_in_m1):
         app.logger.info('Mensagem não segue o formato especificado')
-        return jsonify(error=('Mensagem não segue o formato especificado. '
-                              'Verifique a documentação.'))
+        return jsonify(error='Mensagem não segue o formato especificado. ')
 
     # Procura o cliente
     client = Client.query.filter_by(client_id=message1['clientId']).first()
@@ -39,13 +38,15 @@ def request_access():
         return jsonify(error='Cliente não registrado.')
 
     # Abre a parte criptografada da mensagem
-    decrypted_bytes = Crypto.decrypt(message1['encryptedData'].encode(), client.key.encode())
+    decrypted_bytes = Crypto.decrypt(message1['encryptedData'].encode(),
+                                     client.key.encode())
     decrypted_data = json.loads(decrypted_bytes.decode())
 
-    if not dictutils.has_keys(decrypted_data, ['serviceId','requestedExpirationTime', 'n1']):
+    expected_fields_encrypted = ['serviceId','requestedTime', 'n1']
+    if not all(key in decrypted_data for key in expected_fields_encrypted):
         app.logger.info('Falha ao abrir campo criptografado da mensagem')
         return jsonify(error=('Falha ao abrir campo criptografado da mensagem.\n'
-                              'Ou a requisição não segue o formato especificado '
+                              'Ou a mensagem 1 não segue o formato especificado '
                               'ou a chave usada na criptografia é diferente da '
                               'registrada para este cliente.'))
 
@@ -61,7 +62,7 @@ def request_access():
 
     data_for_tgs = {
         'clientId': client.client_id,
-        'requestedExpirationTime': decrypted_data['requestedExpirationTime'],
+        'requestedTime': decrypted_data['requestedTime'],
         'sessionKey_ClientTGS': key_client_TGS.decode()
     }
     encrypted_bytes_for_tgs = Crypto.encrypt(json.dumps(data_for_tgs).encode(),
@@ -72,8 +73,8 @@ def request_access():
         'ticketForTGS': encrypted_bytes_for_tgs.decode()
     }
 
-    app.logger.info(f"Permissão concedida para '{client.client_id}': \n"
-                    f"    ID do serviço: {decrypted_data['serviceId']}\n"
-                    f"    Prazo de validade requisitado: {decrypted_data['requestedExpirationTime']}\n"
-                    f"    Chave de sessão para comunicação com o TGS: {key_client_TGS.decode()}")
+    app.logger.info(f"Cliente '{client.client_id}' autenticado: \n"
+                    f"    Solicitando acesso ao servico: {decrypted_data['serviceId']}\n"
+                    f"    Tempo solicitado: {decrypted_data['requestedTime']}\n"
+                    f"    Chave de sessão cliente-TGS fornecida: {key_client_TGS.decode()}")
     return jsonify(message2)
