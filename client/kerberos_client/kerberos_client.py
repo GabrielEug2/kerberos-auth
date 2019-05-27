@@ -2,9 +2,10 @@
 import pkg_resources
 import json
 
-from kerberos_client.as_client import AS
-from kerberos_client.tgs_client import TGS
-from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
+from kerberos_client.communication.as_client import AS
+from kerberos_client.communication.tgs_client import TGS
+from kerberos_client.communication.service1_client import Service
+from kerberos_client.communication.exceptions import ServiceDownError, ServerError, InvalidResponseError
 
 class KerberosClient:
     """Cliente de um sistema de autenticação Kerberos."""
@@ -93,8 +94,16 @@ class KerberosClient:
         Args:
             service_id (str): ID do serviço a ser contactado
             ticket (bytes): Ticket de acesso
-            session_key (str): Chave de sessão para comunicação com o serviço
+            session_key (bytes): Chave de sessão para comunicação com o serviço
         """
+
+        try:
+            response = Service.request(
+                client_id=self.client_id,
+                service_id=service_id,
+                ticket=ticket,
+                session_key=session_key
+            )
 
         pass
 

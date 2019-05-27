@@ -4,7 +4,7 @@ import requests
 
 from kerberos_client.crypto import Crypto
 from kerberos_client.random import Random
-from kerberos_client.exceptions import ServiceDownError, ServerError, InvalidResponseError
+from kerberos_client.communications.exceptions import ServiceDownError, ServerError, InvalidResponseError
 
 class TGS:
     """Cliente para comunicação com o Serviço de Concessão de Tickets (TGS)"""
@@ -70,9 +70,7 @@ class TGS:
                 access_ticket = message4['accessTicket'].encode()
 
                 return service_session_key, access_ticket, autorized_time
-            elif 'error' in message4:
-                raise ServerError(message2['error'])
             else:
-                raise InvalidResponseError("Resposta do TGS não tem os campos esperados")
-        except ValueError:
+                raise ServerError(message2['error'])
+        except (KeyError, ValueError):
             raise InvalidResponseError("Erro ao fazer o parsing da resposta do TGS")
