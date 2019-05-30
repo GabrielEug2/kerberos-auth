@@ -5,27 +5,33 @@
 O Kerberos é um sistema de autenticação que envolve 4 atores:
 
 * __Cliente__: quem vai se autenticar, obter os tickets e acessar os serviços.
-* __Serviço de Autenticação (AS)__: quem autentica os clientes. Conhece a chave de todos os clientes.
-* __Serviço de Concessão de Tickets (TGS)__: quem concede os tickets de acesso aos serviços. Conhece a chave de todos os serviços.
+* __Serviço de Autenticação (AS)__: quem autentica os clientes. Conhece a chave de criptografia de todos os clientes e do TGS.
+* __Serviço de Concessão de Tickets (TGS)__: quem concede os tickets de acesso aos serviços. Conhece a chave de criptografia de todos os serviços.
 * __Serviços__: serviços que serão acessados.
 
 Funciona assim:
 
 1. O cliente se autentica junto ao AS.
 
-    * Ele envia uma mensagem __M1__ falando quem ele é, que serviço quer acessar e quando.
+    * Ele envia uma mensagem __M1__ falando quem ele é e quando quer acessar o TGS.
         * __M1__ = [ID\_C + *{ID\_S + T\_R + N1}* Kc]
+            * *ID_S* nesse caso é o identificador do TGS.
 
-    * O AS gera uma chave de sessão para o cliente e o TGS se comunicarem, e responde com __M2__, que contém: 1) A chave que o cliente deve usar para falar com o TGS; 2) Um ticket que ele deve enviar para o mesmo (criptografado, somente o TGS consegue abrir).
+    * O AS gera uma chave de sessão para o cliente e o TGS se comunicarem.
+    
+    * O AS responde com __M2__, que contém: 1) A chave que o cliente deve usar para falar com o TGS; 2) Um "ticket garantidor de tickets" (_Ticket Granting Ticket_), que ele pode enviar para o TGS para obter acesso aos serviços desejados. Somente o TGS consegue abrir este ticket, para o cliente o ticket é só um monte de bytes.
         * __M2__ = [*{K\_c\_tgs + N1}* Kc + T\_c\_tgs]
             * __T\_c\_tgs__ = *{ID\_C + T\_R + K\_c\_tgs}* K\_tgs
+                * *T\_R* nesse caso representa o tempo de validade do ticket.
 
 2. O cliente obtém um ticket de acesso ao serviço (servidor) desejado do TGS.
 
-    * Ele envia __M3__, que diz quem ele é e o que quer acessar, junto com o ticket que o AS deu.
+    * Ele envia __M3__, que diz quem ele é, que serviço quer acessar e quando, junto com o ticket que o AS deu.
         * __M3__ = [*{ID\_C + ID\_S + T\_R + N2}* K\_c\_tgs + T\_c\_tgs]
 
-    * O TGS verifica se as informações do ticket conferem com as que o cliente enviou na mensagem. Se estiver tudo ok, ele gera uma chave de sessão para o cliente e o serviço se comunicarem, e envia como resposta __M4__, que contém: 1) A chave que o cliente deve usar para falar com o serviço; 2) Um ticket que ele deve mandar para o mesmo (criptografado, somente o serviço consegue abrir).
+    * O TGS verifica se o cliente que está escrito no ticket é o mesmo que enviou a mensagem, e se o ticket é válido naquele momento. Se estiver tudo ok, ele gera uma chave de sessão para o cliente e o serviço se comunicarem.
+    
+    * O TGS envia como resposta __M4__, que contém: 1) A chave que o cliente deve usar para falar com o serviço; 2) Quando o cliente está autorizado a usar o serviço; 3) Um ticket que garante acesso ao serviço. Assim como o ticket anterior, esse ticket são somente bytes para o cliente. Somente o serviço vai conseguir ler o conteúdo.
         * __M4__ = [*{K\_c\_s + T\_A + N2}* K\_c\_tgs + T\_c\_s]
             * __T\_c\_s__ = *{ID\_C + T\_A + K\_c\_s}* K\_s
 
@@ -34,7 +40,9 @@ Funciona assim:
     * O cliente envia uma manesgem __M5__ para o serviço, falando quem ele é e o que ele quer acessar/fazer, junto com o ticket que o TGS deu.
         * __M5__ = [*{ID\_C + (T\_A ou T\_R) + S\_R + N3}* K\_c\_s + T\_c\_s]
     
-    * O serviço verifica se as informações do ticket conferem com as que o cliente enviou na mensagem. Se estiver tudo ok, ele responde com __M6__, criptografada com a chave de sessão.
+    * O serviço verifica se o cliente que está escrito no ticket é o mesmo que enviou a mensagem, e se o ticket é válido naquele momento. Se não for o mesmo cliente ou o ticket não for válido, ele nega o acesso.
+
+    * Se estiver tudo ok, ele responde com __M6__, criptografada com a chave de sessão.
         * __M6__ = [*{Resposta, N3}* K\_c\_s]
 
 Legenda:
@@ -60,7 +68,7 @@ Legenda:
 
 ### Cliente, AS e TGS
 
-Instale com o ```pip```. Isso irá baixar todas as dependências necessárias e colocar os executáveis no PATH:
+Instale com o ```pip```. Isso irá baixar todas as dependências necessárias:
 
 ```sh
 pip install -e client/ auth_service/ ticket_granting_service/
@@ -68,7 +76,13 @@ pip install -e client/ auth_service/ ticket_granting_service/
 
 ### Serviço
 
-TODO
+Instale o [NodeJs](https://nodejs.org/en/download/package-manager/).
+
+Baixe as dependências:
+
+```sh
+npm install
+```
 
 ---
 
@@ -85,23 +99,26 @@ kerberos-client --help
 Serviço de Autenticação (AS):
 
 ```sh
-kerberos-as --help
+cd auth_service/
+./bin/start-as-server
 ```
 
 Serviço de Concessão de Tickets (TGS):
 ```sh
-kerberos-tgs --help
+cd ticket_granting_service/
+./bin/start-tgs-server
 ```
 
 Serviço:
 ```sh
-TODO
+cd service1
+node service1.js
 ```
 
 ---
 
 ## Detalhes da implementação
 
-* Criptografia utilizada: Fernet (AES-128)
-* Tempo solicitado e Tempo autorizado:
-    * Strings no formato ```"%d/%m/%y-%H:%M"```, representando a data de validade.
+* Criptografia utilizada: Fernet (AES-128 com modo CBC e padding PKCS7)
+
+---

@@ -6,6 +6,5 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'flask', 'Flask-PyMongo', 'pymongo', 'cryptography'
-    ],
-    scripts=['scripts/kerberos-tgs', 'scripts/start-kerberos-tgs-server']
+    ]
 )

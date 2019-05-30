@@ -1,7 +1,7 @@
+
 from sqlalchemy import Column, String
 
 from kerberos_as.database import Base
-from kerberos_as.crypto import Crypto
 
 class Client(Base):
     __tablename__ = 'clients'
@@ -9,6 +9,6 @@ class Client(Base):
     client_id = Column(String(30), primary_key=True)
     key = Column(String(100))
 
-    def __init__(self, client_id):
+    def __init__(self, client_id, client_key):
         self.client_id = client_id
-        self.key = Crypto.generate_new_key().decode()
+        self.key = client_key.decode()

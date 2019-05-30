@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export FLASK_APP=kerberos_tgs
+
+export FLASK_ENV=development
+export TGS_CONFIG_FILE=../config.py
+
+flask run -p 6000

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export FLASK_APP=kerberos_as
+
+export FLASK_ENV=development
+export AS_CONFIG_FILE=../config.py
+
+flask run -p 5000
