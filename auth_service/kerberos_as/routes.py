@@ -36,21 +36,21 @@ def request_tgt():
         current_app.logger.debug("Dados descriptografados: \n"
                                 f"{json.dumps(decrypted_data, indent=4)}")
 
-        # Validações nos dados descriptogrados
+        # Validações nos dados descriptografados
         expected_decrypted_fields = ['serviceId', 'requestedTime', 'n1']
         if not all(key in decrypted_data for key in expected_decrypted_fields):
             current_app.logger.info('Parte criptografada da mensagem não tem os campos esperados')
             return jsonify(error='Parte criptografada da mensagem não tem os campos esperados')
         
         if not TimeValidator.requested_time_is_valid(decrypted_data['requestedTime']):
-            current_app.logger.info('Tempo solicitado não segue o formato especificado')
-            return jsonify(error='Tempo solicitado não segue o formato especificado')
+            current_app.logger.info('Tempo solicitado não segue nenhum dos formatos válidos')
+            return jsonify(error='Tempo solicitado não segue um formato válido')
 
         if decrypted_data['serviceId'] != 'TGS':
             current_app.logger.info("Cliente solicitou um TGT para um serviço (TGS) "
                                    f"desconhecido: {decrypted_data['serviceId']}")
             return jsonify(error='Serviço (TGS) desconhecido')
-        # Fim das validações
+        # Fim das validações nos dados descriptografados
 
         tgt_expiration_time = decrypted_data['requestedTime']
         key_client_TGS = Crypto.generate_key()

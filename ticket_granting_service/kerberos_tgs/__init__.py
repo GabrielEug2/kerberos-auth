@@ -1,7 +1,7 @@
 
 from flask import Flask
 
-from kerberos_tgs.database import mongo
+from kerberos_tgs.database import init_db
 
 def create_app():
     app = Flask(__name__)
@@ -10,7 +10,7 @@ def create_app():
 
     # Setup database
     app.config["MONGO_URI"] = "mongodb://localhost:27017/kerberos_tgs_db"
-    mongo.init_app(app)
+    init_db(app)
 
     # Register blueprints
     from kerberos_tgs import routes

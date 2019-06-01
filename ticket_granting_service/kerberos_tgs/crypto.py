@@ -8,7 +8,10 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 class Crypto:
-    """Criptografia simétrica AES-128 com modo CBC e padding PKCS7 (Fernet)"""
+    """Criptografia simétrica.
+    
+    AES-128 com modo CBC e padding PKCS7 (Fernet)
+    """
 
     @classmethod
     def generate_key(cls):
