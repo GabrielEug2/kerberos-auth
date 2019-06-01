@@ -4,9 +4,11 @@ import argparse
 from datetime import datetime
 
 from kerberos_client.kerberos_client import KerberosClient
-from kerberos_client.exceptions import (
-    ServerError, ServerDownError, InvalidResponseError, UnknownService
-)
+from kerberos_client.exceptions import (ServerDownError,
+                                        ServerError,
+                                        InvalidResponseError,
+                                        ResponseDoesNotMatch,
+                                        UnknownService)
 
 
 def sign_up(args):
@@ -24,37 +26,43 @@ def sign_up(args):
             client_created = True
         except ServerDownError:
             print("[Erro] AS está offline")
-        except InvalidResponseError:
-            print("[Erro] Falha ao interpretar a resposta do AS")
         except ServerError as e:
             print("[Erro] AS retornou um erro")
             print(e)
+        except InvalidResponseError:
+            print("[Erro] Falha ao interpretar a resposta do AS")
     
     print("Cliente cadastrado com sucesso")
 
 
 def request_ticket(args):
-    kerberos = KerberosClient()
-    kerberos.login(args.client_id, args.password)
-
     try:
         requested_time = datetime.strptime(args.requested_time, "%d/%m/%Y %H:%M")
     except ValueError:
         print("Tempo solicitado inválido")
         return
-    requested_time = datetime.strftime(requested_time, "%d/%m/%Y %H:%M")
+
+    kerberos = KerberosClient()
 
     try:
-        autorized_time = kerberos.acquire_new_ticket(args.service_id, requested_time)
+        autorized_time = kerberos.acquire_new_ticket(
+            client_id=args.client_id,
+            password=args.password,
+            service_id=args.service_id,
+            requested_time=args.requested_time
+        )
     except ServerDownError:
         print("[Erro] AS ou TGS offline")
-        return
-    except InvalidResponseError:
-        print("[Erro] Falha ao interpretar a resposta do AS ou do TGS")
         return
     except ServerError as e:
         print("[Erro] AS ou TGS retornou um erro")
         print(e)
+        return
+    except ResponseDoesNotMatch:
+        print("[Erro] Resposta do AS ou do TGS não confere com o pedido")
+        return
+    except InvalidResponseError:
+        print("[Erro] Falha ao interpretar a resposta do AS ou do TGS")
         return
     
     print(f"Ticket para '{args.service_id}' obtido com sucesso")
@@ -63,9 +71,8 @@ def request_ticket(args):
 
 def use_service(args):
     kerberos = KerberosClient()
-    kerberos.login(args.client_id, args.password)
 
-    available_tickets = kerberos.get_available_tickets(service_id=args.service_id)
+    available_tickets = kerberos.get_available_tickets(args.client_id, service_id=args.service_id)
 
     if len(available_tickets) > 0:
         print("-- Tickets disponíveis --\n")
@@ -82,19 +89,24 @@ def use_service(args):
 
         try:
             response = kerberos.use_service(
+                args.client_id
                 args.service_id,
                 chosen_ticket['ticket'].encode(),
                 chosen_ticket['sessionKey'].encode()
             )
         except ServerDownError:
-            print(f"[Erro] Serviço {args.service_id} offline")
-            return
-        except InvalidResponseError:
-            print("[Erro] Falha ao interpretar a resposta do serviço")
+            print(f"[Erro] Serviço offline")
             return
         except ServerError as e:
             print("[Erro] Serviço retornou um erro")
             print(e)
+            return
+        except ResponseDoesNotMatch:
+            print("[Erro] Resposta do serviço não confere com o pedido")
+            return
+        except InvalidResponseError:
+            print("[Erro] Falha ao interpretar a resposta do serviço")
+            return
         except UnknownService:
             print("[Erro] Serviço desconhecido")
             return
@@ -128,7 +140,6 @@ if __name__ == '__main__':
         help='Tenta acessar um serviço com algum dos tickets salvos'
     )
     use_service_parser.add_argument('client_id', help='Seu ID no servico de autenticação')
-    use_service_parser.add_argument('password', help='Sua senha no servico de autenticação')
     use_service_parser.add_argument('service_id', help='ID do servico a ser utilizado')
     use_service_parser.set_defaults(func=use_service)
 

@@ -5,6 +5,9 @@ class ServerDownError(Exception):
 class ServerError(Exception):
     pass
 
+class ResponseDoesNotMatch(Exception):
+    pass
+
 class InvalidResponseError(Exception):
     pass
 
