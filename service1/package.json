@@ -2,13 +2,13 @@
   "name": "kerberos_service1",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "main": "service1.js",
+  "scripts": {},
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "fernet": "^0.3.1",
+    "moment": "^2.24.0"
   }
 }

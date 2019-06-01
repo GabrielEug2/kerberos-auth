@@ -12,7 +12,7 @@ class TimeAutorizer:
         """
 
         # Dependendo de como são os serviços, poderia ter alguma
-        # lógica de autorização aqui. 
+        # lógica de autorização aqui.
         #   Ex: acesso a salas --> somente um cliente pode usar
         #       de cada vez. Se já foi concedido um período para
         #       um cliente, outros que pedirem acesso depois não

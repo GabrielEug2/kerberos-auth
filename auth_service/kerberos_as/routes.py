@@ -33,24 +33,21 @@ def request_tgt():
             current_app.logger.info('Falha ao descriptografar a mensagem')
             return jsonify(error='Falha ao descriptografar a mensagem')
 
-        current_app.logger.debug("Dados descriptografados: \n"
-                                f"{json.dumps(decrypted_data, indent=4)}")
+        current_app.logger.debug(f"Dados descriptografados: \n{json.dumps(decrypted_data, indent=4)}")
 
-        # Validações nos dados descriptografados
         expected_decrypted_fields = ['serviceId', 'requestedTime', 'n1']
         if not all(key in decrypted_data for key in expected_decrypted_fields):
             current_app.logger.info('Parte criptografada da mensagem não tem os campos esperados')
             return jsonify(error='Parte criptografada da mensagem não tem os campos esperados')
-        
+
         if not TimeValidator.requested_time_is_valid(decrypted_data['requestedTime']):
             current_app.logger.info('Tempo solicitado não segue nenhum dos formatos válidos')
-            return jsonify(error='Tempo solicitado não segue um formato válido')
-
+            return jsonify(error='Tempo solicitado não segue nenhum dos formatos válidos')
+        
         if decrypted_data['serviceId'] != 'TGS':
             current_app.logger.info("Cliente solicitou um TGT para um serviço (TGS) "
                                    f"desconhecido: {decrypted_data['serviceId']}")
             return jsonify(error='Serviço (TGS) desconhecido')
-        # Fim das validações nos dados descriptografados
 
         tgt_expiration_time = decrypted_data['requestedTime']
         key_client_TGS = Crypto.generate_key()
@@ -76,8 +73,8 @@ def request_tgt():
         }
 
         current_app.logger.info(f"Cliente \"{client.client_id}\" autenticado: \n"
-                        f"    Tempo autorizado para uso do TGS: {tgt_expiration_time}\n"
-                        f"    Chave de sessão cliente-TGS fornecida: {key_client_TGS.decode()}")
+                                f"    Tempo autorizado para uso do TGS: {tgt_expiration_time}\n"
+                                f"    Chave de sessão cliente-TGS fornecida: {key_client_TGS.decode()}")
         return jsonify(message2)
     else:
         current_app.logger.info(f"Cliente \"{message1['clientId']}\" não está registrado")
@@ -96,10 +93,13 @@ def sign_up():
     id_already_taken = Client.query.filter_by(client_id=message['clientId']).first() is not None
 
     if not id_already_taken:
+        # Salt determininístico para que o cliente consiga 
+        # gerar a mesma chave quando for enviar M1
         client_key = Crypto.generate_key_from_password(
             password=message['password'],
             salt=message['clientId'].encode()
         )
+
         client = Client(message['clientId'], client_key)
         db_session.add(client)
         db_session.commit()
@@ -108,5 +108,5 @@ def sign_up():
         return jsonify(ok='Cliente registrado com sucesso')
     else:
         current_app.logger.info(f"Falha ao registrar cliente {message['clientId']}: "
-                                "já existe um cliente registrado com este ID")
+                                 "já existe um cliente registrado com este ID")
         return jsonify(error='Cliente já está registrado.')

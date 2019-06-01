@@ -1,7 +1,7 @@
-import re
+from datetime import datetime
 
 class TimeValidator:
-    REQUESTED_TIME_FORMAT = 'UNTIL: %d/%m/%Y %H:%M'
+    REQUESTED_TIME_FORMAT = '%d/%m/%Y %H:%M'
 
     @classmethod
     def requested_time_is_valid(cls, requested_time_str):

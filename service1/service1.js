@@ -3,7 +3,7 @@ const express = require('express');
 
 const config = require('./config');
 const crypto = require('./crypto');
-const timeVerifier = require('./timeVerifier');
+const timeValidator = require('./timeValidator');
 
 const app = express();
 const hostname = '127.0.0.1';
@@ -19,66 +19,59 @@ app.post('/access', (req, res) => {
     var expectedM5Fields = ['encryptedData', 'accessTicket']
     if (!expectedM5Fields.every( (p) => { return message5.hasOwnProperty(p) } )) {
         console.log("Mensagem não segue o formato especificado")
-        res.json({ error: "Mensagem não segue o formato especificado" })
-        return
+        return res.json({ error: "Mensagem não segue o formato especificado" })
     }
 
     try {
-        var accessTicketStr = crypto.decrypt(message5.ticket, config.SERVICE_KEY)
+        var accessTicketStr = crypto.decrypt(message5.accessTicket, config.SERVICE_KEY)
         var accessTicket = JSON.parse(accessTicketStr)
-
-        var expectedTicketFields = ['clientId', 'autorizedTime', 'sessionKey_ClientService']
-        if (!expectedTicketFields.every( (p) => { return accessTicket.hasOwnProperty(p) } ) ||
-            !timeVerifier.autorizedTimeIsValid(accessTicket.autorizedTime)) {
-            console.log('Ticket não segue o formato especificado.')
-            res.json({ error: 'Ticket não segue o formato especificado.' })
-            return
-        }
     } catch(SyntaxError) {
-        console.log('Ticket não segue o formato especificado.')
-        res.json({ error: 'Ticket não segue o formato especificado.' })
-        return
+        console.log('Falha ao descriptografar o ticket')
+        return res.json({ error: 'Falha ao descriptografar o ticket' })
     }
-    try {
 
+    var expectedTicketFields = ['clientId', 'autorizedTime', 'sessionKey_ClientService']
+    if (!expectedTicketFields.every((p) => { return accessTicket.hasOwnProperty(p) })) {
+        console.log('Ticket não tem os campos esperados')
+        return res.json({ error: 'Ticket não tem os campos esperados' })
     }
+
+    if (!timeValidator.autorizedTimeIsValid(accessTicket.autorizedTime)) {
+        console.log('Tempo autorizado não segue nenhum dos formatos válidos')
+        return res.json({ error: 'Tempo autorizado não segue nenhum dos formatos válidos' })
+    }
+
     try {
-        var clientDataStr = crypto.decrypt(message5.encryptedData,
-                                           accessTicket.sessionKey_ClientService)
-        var clientData = JSON.parse(clientDataStr)
+        var decryptedDataStr = crypto.decrypt(message5.encryptedData,
+                                              accessTicket.sessionKey_ClientService)
+        var decryptedData = JSON.parse(decryptedDataStr)
     } catch(SyntaxError) {
-        console.log('Parte criptografada da mensagem não tem campos esperados')
-        res.json({ error: 'Parte criptografada da mensagem não tem campos esperados' })
-        return
-    }
-    var expectedClientFields = ['clientId', 'currentTime', 'request', 'n3']
-    if (!expectedClientFields.every( (p) => { return clientData.hasOwnProperty(p) } )) {
-        console.log('Parte criptografada da mensagem não tem campos esperados')
-        res.json({ error: 'Parte criptografada da mensagem não tem campos esperados' })
-        return
+        console.log('Falha ao descriptografar a mensagem')
+        return res.json({ error: 'Falha ao descriptografar a mensagem' })
     }
 
-    clientMatches = clientData.clientId == accessTicket.clientId
-    requested_time_is_valid = timeVerifier.isValid(clientData.currentTime)
-    timeIsWithinAutorizedTime = timeVerifier.isAutorized(
-        clientData.currentTime,
+    var expectedClientFields = ['clientId', 'requestedTime', 'request', 'n3']
+    if (!expectedClientFields.every( (p) => { return decryptedData.hasOwnProperty(p) } )) {
+        console.log('Parte criptografada da mensagem não tem os campos esperados')
+        return res.json({ error: 'Parte criptografada da mensagem não tem os campos esperados' })
+    }
+    if (!timeValidator.requestedTimeIsValid(decryptedData.requestedTime)) {
+        console.log('Tempo solicitado não segue nenhum dos formatos válidos')
+        return res.json({ error: 'Tempo solicitado não segue nenhum dos formatos válidos' })
+    }
+
+    clientMatches = decryptedData.clientId == accessTicket.clientId
+    ticketIsValid = timeValidator.isAuthorized(
+        decryptedData.requestedTime,
         accessTicket.autorizedTime
     )
-    try {
-        timeIsWithinAutorizedTime = timeVerifier.isValid(clientData.currentTime,
-            accessTicket.autorizedTime)
-    } catch (exception) {
-        console.log(exception)
-        res.json({ error: 'Tempo solicitado ou tempo autorizado inválidos' })
-        return
-    }
 
-    if (clientMatches && timeIsWithinAutorizedTime) {
+    if (clientMatches && ticketIsValid) {
         response = "Something"
 
         var dataToEncrypt = {
             response: response,
-            n3: clientData.n3,
+            n3: decryptedData.n3,
         }
         var encryptedStrForClient = crypto.encrypt(JSON.stringify(dataToEncrypt),
                                                    accessTicket.sessionKey_ClientService)
@@ -89,17 +82,16 @@ app.post('/access', (req, res) => {
 
         console.log(`Acesso concedido a '${accessTicket.clientId}'\n` +
                     `    Respondendo com "${response}"`)
-
-        res.json(message6)
+        return res.json(message6)
     } else if (!clientMatches) {
-        console.log(`Cliente ${clientData.clientId} tentou utilizar um ticket ` +
+        console.log(`Cliente ${decryptedData.clientId} tentou utilizar um ticket ` +
                     `que não lhe pertence (dono: ${accessTicket.clientId}`)
-        res.json({ error: 'Acesso negado. Ticket não é válido para esse cliente' })
+        return res.json({ error: 'Acesso negado. Ticket não é válido para esse cliente' })
     } else {
-        console.log(`Acesso negado ao cliente ${clientData.clientId}\n` +
-                    `  Tempo solicitado: ${clientData.currentTime}\n` +
+        console.log(`Acesso negado ao cliente ${decryptedData.clientId}\n` +
+                    `  Tempo solicitado: ${decryptedData.currentTime}\n` +
                     `  Tempo em que está autorizado: ${accessTicket.autorizedTime}`)
-        res.json({ error: 'Acesso negado. Ticket não é válido neste momento' })
+        return res.json({ error: 'Acesso negado. Ticket não é válido neste momento' })
     }
 })
 

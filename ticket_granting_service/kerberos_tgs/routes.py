@@ -25,7 +25,7 @@ def request_access_ticket():
 
     try:
         tgt_bytes = Crypto.decrypt(message3['TGT'].encode(),
-                                    current_app.config['TGS_KEY'].encode())
+                                   current_app.config['TGS_KEY'].encode())
         tgt = json.loads(tgt_bytes.decode())
     except (json.JSONDecodeError, AttributeError):
         current_app.logger.info('Falha ao descriptografar o ticket')
@@ -33,16 +33,14 @@ def request_access_ticket():
 
     current_app.logger.debug(f"TGT descriptografado: \n{json.dumps(tgt, indent=4)}")
 
-    # Validações no ticket
     expected_tgt_fields = ['clientId', 'TGT_expirationTime', 'sessionKey_ClientTGS']
     if not all(key in tgt for key in expected_tgt_fields):
         current_app.logger.info('Ticket não tem os campos esperados')
         return jsonify(error='Ticket não tem os campos esperados')
-
+    
     if not TimeValidator.tgt_expiration_time_is_valid(tgt['TGT_expirationTime']):
         current_app.logger.info('Prazo de validade do TGT não segue o formato especificado')
         return jsonify(error='Prazo de validade do TGT não segue o formato especificado')
-    # Fim das validações no ticket
 
     try:
         decrypted_bytes = Crypto.decrypt(message3['encryptedData'].encode(),
@@ -54,7 +52,6 @@ def request_access_ticket():
 
     current_app.logger.debug(f"Dados descriptografados: \n{json.dumps(decrypted_data, indent=4)}")
 
-    # Validações nos dados descriptografados
     expected_client_fields = ['clientId', 'serviceId', 'requestedTime', 'n2']
     if not all(key in decrypted_data for key in expected_client_fields):
         current_app.logger.info('Parte criptografada da mensagem não tem os campos esperados')
@@ -62,15 +59,14 @@ def request_access_ticket():
 
     if not TimeValidator.requested_time_is_valid(decrypted_data['requestedTime']):
         current_app.logger.info('Tempo solicitado não segue nenhum dos formatos válidos')
-        return jsonify(error='Tempo solicitado não segue um formato válido')
-    # Fim das validações nos dados descriptografados
+        return jsonify(error='Tempo solicitado não segue nenhum dos formatos válidos')
 
     client_matches = decrypted_data['clientId'] == tgt['clientId']
 
     service = mongo.db.services.find_one({"_id": decrypted_data['serviceId']})
     service_exists = service is not None
 
-    tgt_expiration_time = datetime.strptime(tgt_expiration_date_str,
+    tgt_expiration_time = datetime.strptime(tgt['TGT_expirationTime'],
                                             TimeValidator.TGT_EXPIRATION_TIME_FORMAT)
     tgt_expired = datetime.now() > tgt_expiration_time
 
@@ -92,7 +88,7 @@ def request_access_ticket():
             'sessionKey_ClientService': key_client_service.decode()
         }
         encrypted_bytes_for_service = Crypto.encrypt(json.dumps(data_for_service).encode(),
-                                                    service['key'])
+                                                     service['key'])
 
         message4 = {
             'encryptedData': encrypted_bytes_for_client.decode(),
@@ -108,7 +104,7 @@ def request_access_ticket():
     elif not client_matches:
         current_app.logger.info(f"Cliente {decrypted_data['clientId']} tentou "
                                  "utilizar um TGT que não lhe pertence "
-                                f"(dono do ticket: {tgt['clientId']}")
+                                f"(dono: {tgt['clientId']})")
         return jsonify(error='Acesso negado. Ticket não é válido para esse cliente')
     elif tgt_expired:
         current_app.logger.info('TGT não é mais válido')

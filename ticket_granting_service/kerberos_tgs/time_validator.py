@@ -1,9 +1,7 @@
-import re
-
 class TimeValidator:
     TGT_EXPIRATION_TIME_FORMAT = '%d/%m/%Y %H:%M'
-
-    REQUESTED_TIME_REGEX = '\d{2}/\d{2}/\d{4} \d{2}:\d{2}'
+    
+    REQUESTED_TIME_FORMAT = '%d/%m/%Y %H:%M'
 
     @classmethod
     def tgt_expiration_time_is_valid(cls, tgt_expiration_time_str):
@@ -29,7 +27,8 @@ class TimeValidator:
         # um tempo de acesso:
         #   Ex: Em um período específico --> "FROM 10:00 TO 22:00"
         #       Somente alguns dias --> "DAYS=[mon, tue, wed, thu, fri]"
-        if re.match(cls.REQUESTED_TIME_REGEX, requested_time):
+        try:
+            requested_time = datetime.strptime(requested_time_str, cls.REQUESTED_TIME_FORMAT)
             return True
-        else:
+        except ValueError:
             return False
