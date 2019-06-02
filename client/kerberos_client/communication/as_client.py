@@ -99,7 +99,8 @@ class AS:
                 decrypted_data = json.loads(decrypted_bytes.decode())
 
                 if n1 != decrypted_data['n1']:
-                    raise ResponseDoesNotMatch("n1 não confere")
+                    raise ResponseDoesNotMatch(f"n1 não confere \nEnviado: {n1} \n"
+                                               f"Recebido: {decrypted_data['n1']}")
 
                 ticket = message2['TGT'].encode()
                 session_key = decrypted_data['sessionKey_ClientTGS'].encode()

@@ -1,19 +1,18 @@
 
 const moment = require('moment')
 
-const REQUESTED_TIME_FORMAT = 'DD/MM/YYYY hh:mm'
+const REQUESTED_TIME_FORMAT = 'DD/MM/YYYY HH:mm'
+const AUTORIZED_TIME_FORMAT = 'DD/MM/YYYY HH:mm'
 
 /**
  * Verifica se o tempo solicitado está no formato certo.
  * @param {string} requestedTimeStr Tempo solicitado
  */
 function requestedTimeIsValid(requestedTimeStr) {
-    requestedTime = moment(requestedTimeStr, REQUESTED_TIME_FORMAT, true)
+    var requestedTime = moment(requestedTimeStr, REQUESTED_TIME_FORMAT, true)
 
     return requestedTime.isValid()
 }
-
-const AUTORIZED_TIME_FORMAT = 'DD/MM/YYYY hh:mm'
 
 /**
  * Verifica se o tempo autorizado está em um formato válido.
@@ -28,7 +27,7 @@ function autorizedTimeIsValid(autorizedTimeStr) {
     somente alguns dias da semana...), o serviço precisaria
     verificar se é algum destes formatos. */
 
-    autorizedTime = moment(autorizedTimeStr, AUTORIZED_TIME_FORMAT, true)
+    var autorizedTime = moment(autorizedTimeStr, AUTORIZED_TIME_FORMAT, true)
 
     return autorizedTime.isValid()
 }
@@ -40,8 +39,8 @@ function autorizedTimeIsValid(autorizedTimeStr) {
  * @param {string} autorizedTimeStr Tempo autorizado pelo TGS
  */
 function isAuthorized(requestedTimeStr, autorizedTimeStr) {
-    requestedTime = moment(requestedTimeStr, REQUESTED_TIME_FORMAT, true).toDate()
-    autorizedTime = moment(autorizedTimeStr, AUTORIZED_TIME_FORMAT, true).toDate()
+    var requestedTime = moment(requestedTimeStr, REQUESTED_TIME_FORMAT, true).toDate()
+    var autorizedTime = moment(autorizedTimeStr, AUTORIZED_TIME_FORMAT, true).toDate()
 
     if (requestedTime < autorizedTime) {
         return true

@@ -64,7 +64,7 @@ class KerberosClient:
 
         # Salt determinístico para obter a mesma chave que o 
         # AS salvou quando o cliente se registrou
-        client_key = Crypto.generate_key_from_password(password, salt=client_id)
+        client_key = Crypto.generate_key_from_password(password, salt=client_id.encode())
 
         # Poderiam ser parâmetros que o cliente escolhe, mas eu 
         # decidi implementar desse jeito para simplificar:

@@ -89,7 +89,7 @@ def use_service(args):
 
         try:
             response = kerberos.use_service(
-                args.client_id
+                args.client_id,
                 args.service_id,
                 chosen_ticket['ticket'].encode(),
                 chosen_ticket['sessionKey'].encode()

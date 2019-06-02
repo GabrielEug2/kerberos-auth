@@ -3,6 +3,7 @@ import json
 from flask import Blueprint, request, jsonify
 from flask import current_app
 
+from kerberos_as.crypto import Crypto
 from kerberos_as.time_validator import TimeValidator
 from kerberos_as.models import Client
 from kerberos_as.database import db_session

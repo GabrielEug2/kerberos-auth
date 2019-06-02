@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask import current_app
 
+from kerberos_as.crypto import Crypto
 from kerberos_tgs.time_validator import TimeValidator
 from kerberos_tgs.time_autorizer import TimeAutorizer
 from kerberos_tgs.database import mongo
@@ -96,7 +97,7 @@ def request_access_ticket():
         }
 
         current_app.logger.info(f"Ticket fornecido para '{tgt['clientId']}': \n"
-                        f"    ID do serviço: {service._id}\n"
+                        f"    ID do serviço: {service['_id']}\n"
                         f"    Tempo solicitado: {decrypted_data['requestedTime']}\n"
                         f"    Tempo autorizado: {autorized_time}\n"
                         f"    Chave de sessão client-serviço fornecida: {key_client_service.decode()}")

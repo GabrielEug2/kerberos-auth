@@ -36,10 +36,13 @@ class Service:
         """
 
         n3 = Random.rand_int()
+        # Poderia ser um parâmetro pro cliente definir, mas 
+        # achei que fazia mais sentido usar sempre a hora atual
+        requested_time = datetime.now().strftime("%d/%m/%Y %H:%M")
 
         data_to_encrypt = {
             'clientId': client_id,
-            'currentTime': datetime.now().strftime("%d/%m/%Y %H:%M"),
+            'requestedTime': requested_time,
             'request': request,
             'n3': n3
         }
@@ -63,7 +66,8 @@ class Service:
                 decrypted_data = json.loads(decrypted_bytes.decode())
 
                 if n3 != decrypted_data['n3']:
-                    raise ResponseDoesNotMatch("n3 não confere")
+                    raise ResponseDoesNotMatch(f"n3 não confere \nEnviado: {n3} \n"
+                                               f"Recebido: {decrypted_data['n3']}")
 
                 response = decrypted_data['response']
 

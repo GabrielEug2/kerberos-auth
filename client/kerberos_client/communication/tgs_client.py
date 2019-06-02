@@ -70,7 +70,8 @@ class TGS:
                 decrypted_data = json.loads(decrypted_bytes.decode())
 
                 if n2 != decrypted_data['n2']:
-                    raise ResponseDoesNotMatch("n2 não confere")
+                    raise ResponseDoesNotMatch(f"n2 não confere \nEnviado: {n2} \n"
+                                               f"Recebido: {decrypted_data['n2']}")
 
                 access_ticket = message4['accessTicket'].encode()
                 service_session_key = decrypted_data['sessionKey_ClientService'].encode()
