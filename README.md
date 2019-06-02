@@ -22,7 +22,7 @@ Funciona assim:
     * O AS responde com __M2__, que contém: 1) A chave que o cliente deve usar para falar com o TGS; 2) Um "ticket garantidor de tickets" (_Ticket Granting Ticket_), que ele pode enviar para o TGS para obter acesso aos serviços desejados. Somente o TGS consegue abrir este ticket, para o cliente o ticket é só um monte de bytes.
         * __M2__ = [*{K\_c\_tgs + N1}* Kc + T\_c\_tgs]
             * __T\_c\_tgs__ = *{ID\_C + T\_R + K\_c\_tgs}* K\_tgs
-                * *T\_R* nesse caso representa o tempo de validade do ticket.
+                * *T\_R* nesse caso representa o tempo de validade desse ticket.
 
 2. O cliente obtém um ticket de acesso ao serviço (servidor) desejado do TGS.
 
@@ -114,11 +114,5 @@ Serviço:
 cd service1
 node service1.js
 ```
-
----
-
-## Detalhes da implementação
-
-* Criptografia utilizada: Fernet (AES-128 com modo CBC e padding PKCS7)
 
 ---

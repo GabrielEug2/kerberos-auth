@@ -5,7 +5,7 @@ from pymongo import MongoClient
 from kerberos_tgs.crypto import Crypto
 
 
-def create_new_service(args):
+def create_new_service():
     db = MongoClient('mongodb://localhost:27017/')['kerberos_tgs_db']
     services = db.services
 
@@ -19,7 +19,7 @@ def create_new_service(args):
         if not id_already_taken:
             service = {
                 '_id': desired_id,
-                'key': Crypto.generate_new_key().decode()
+                'key': Crypto.generate_key().decode()
             }
             services.insert_one(service)
 

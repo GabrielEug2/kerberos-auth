@@ -87,13 +87,16 @@ def use_service(args):
         ticket_id = int(input(f"ID do ticket que deseja usar: "))
         chosen_ticket = available_tickets[ticket_id-1]
 
+        request = input("Request: ")
         try:
             response = kerberos.use_service(
-                args.client_id,
-                args.service_id,
-                chosen_ticket['ticket'].encode(),
-                chosen_ticket['sessionKey'].encode()
+                client_id=args.client_id,
+                service_id=args.service_id,
+                request=request,
+                ticket=chosen_ticket['ticket'].encode(),
+                session_key=chosen_ticket['sessionKey'].encode()
             )
+            print(f"\nResposta do serviço:\n{response}")
         except ServerDownError:
             print(f"[Erro] Serviço offline")
             return
@@ -110,8 +113,6 @@ def use_service(args):
         except UnknownService:
             print("[Erro] Serviço desconhecido")
             return
-
-        print(f"Resposta recebida do serviço:\n{response}")
     else:
         print("Nenhum ticket salvo para este serviço")
     

@@ -67,7 +67,7 @@ app.post('/access', (req, res) => {
     )
 
     if (clientMatches && ticketIsValid) {
-        response = "Something"
+        response = "Você acessou o que queria!"
 
         var dataToEncrypt = {
             response: response,
@@ -81,6 +81,7 @@ app.post('/access', (req, res) => {
         }
 
         console.log(`Acesso concedido a '${accessTicket.clientId}'\n` +
+                    `    Requisição "${decryptedData.request}"\n` +
                     `    Respondendo com "${response}"`)
         return res.json(message6)
     } else if (!clientMatches) {
@@ -89,7 +90,7 @@ app.post('/access', (req, res) => {
         return res.json({ error: 'Acesso negado. Ticket não é válido para esse cliente' })
     } else {
         console.log(`Acesso negado ao cliente ${decryptedData.clientId}\n` +
-                    `  Tempo solicitado: ${decryptedData.currentTime}\n` +
+                    `  Tempo solicitado: ${decryptedData.requestedTime}\n` +
                     `  Tempo em que está autorizado: ${accessTicket.autorizedTime}`)
         return res.json({ error: 'Acesso negado. Ticket não é válido neste momento' })
     }

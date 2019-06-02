@@ -112,13 +112,14 @@ class KerberosClient:
 
         return autorized_time
 
-    def use_service(self, client_id, service_id, ticket, session_key):
+    def use_service(self, client_id, service_id, request, ticket, session_key):
         """Tenta acessar um serviço com o ticket especificado
         
         Args:
             client_id (str): ID do cliente que está tentando acessar
                 o serviço
             service_id (str): ID do serviço a ser contactado
+            request (str): Mensagem que será enviada ao serviço
             ticket (bytes): Ticket de acesso
             session_key (bytes): Chave de sessão para comunicação
                 com o serviço
@@ -138,9 +139,6 @@ class KerberosClient:
         """
 
         if service_id == 'service1':
-            # Depende do serviço, aqui é só um exemplo
-            request = "Send me something back"
-
             try:
                 response = Service.request(
                     client_id=client_id,
