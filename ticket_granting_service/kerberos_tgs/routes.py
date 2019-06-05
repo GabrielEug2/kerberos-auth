@@ -5,7 +5,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask import current_app
 
-from kerberos_as.crypto import Crypto
+from kerberos_tgs.crypto import Crypto
 from kerberos_tgs.time_validator import TimeValidator
 from kerberos_tgs.time_autorizer import TimeAutorizer
 from kerberos_tgs.database import mongo
